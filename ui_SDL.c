@@ -1,0 +1,290 @@
+#include "cipollotto.h"
+#include "ui.h"
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_init.h>
+#include <SDL3/SDL_keycode.h>
+#include <SDL3/SDL_log.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3/SDL_video.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <SDL3/SDL.h>
+#include <stdio.h>
+#include <SDL3_ttf/SDL_ttf.h>
+
+
+#define WINDOW_W 1200
+#define WINDOW_H 600
+#define SCREEN_W 64
+#define SCREEN_H 32
+
+
+static SDL_Window*   win_canvas;
+static SDL_Renderer* ren_canvas;
+static SDL_Texture*  tex_canvas;
+
+static SDL_Window*   win_info  ;
+static SDL_Renderer* ren_info  ;
+
+
+static const uint32_t white = 0xFFFFFFFF;
+static const uint32_t black = 0x000000FF;
+static const uint32_t green = 0x00FF00FF;
+static const uint32_t lgray = 0x1C1C1CFF;
+
+static const uint32_t On  = green;
+static const uint32_t Off = lgray;
+
+/* compile-time initialized table (16 rows × 4 columns) */
+static const uint32_t draw_table[16][4] = {
+    { Off, Off, Off, Off },
+    { Off, Off, Off, On  },
+    { Off, Off, On,  Off },
+    { Off, Off, On,  On  },
+    { Off, On,  Off, Off },
+    { Off, On,  Off, On  },
+    { Off, On,  On,  Off },
+    { Off, On,  On,  On  },
+    { On,  Off, Off, Off },
+    { On,  Off, Off, On  },
+    { On,  Off, On,  Off },
+    { On,  Off, On,  On  },
+    { On,  On,  Off, Off },
+    { On,  On,  Off, On  },
+    { On,  On,  On,  Off },
+    { On,  On,  On,  On  },
+};
+
+
+
+int ui_init(void){
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+    win_canvas = SDL_CreateWindow("Cipollotto",
+        1200, 600, 
+        SDL_WINDOW_RESIZABLE);
+    
+    win_info   = SDL_CreateWindow("Debug", 800, 600, SDL_WINDOW_RESIZABLE);
+    ren_canvas = SDL_CreateRenderer(win_canvas, NULL);
+    ren_info   = SDL_CreateRenderer(win_info,   NULL);
+
+
+    //Texture format:
+    // 4 x 8 = 32 bits
+    tex_canvas = SDL_CreateTexture(ren_canvas, 
+        SDL_PIXELFORMAT_RGBA8888, 
+        SDL_TEXTUREACCESS_STREAMING, 
+        SCREEN_W, SCREEN_H);
+
+    if(win_canvas == NULL || ren_canvas == NULL || tex_canvas == NULL || win_info == NULL){
+        SDL_LogError(SDL_LOG_CATEGORY_RENDER, "Could not initialize display. %s", SDL_GetError());
+        SDL_Quit();
+        return -1;
+    }
+    SDL_SetTextureScaleMode(tex_canvas, SDL_SCALEMODE_NEAREST);
+
+
+    SDL_SetRenderDrawColor(ren_info, 0x1c, 0x1c, 0x1c, 0xff);
+    SDL_RenderClear(ren_info);
+    return 0;
+}
+
+
+void ui_deinit(void){
+    SDL_DestroyRenderer(ren_canvas);
+    SDL_DestroyRenderer(ren_info);
+    SDL_DestroyWindow(win_canvas);
+    SDL_DestroyWindow(win_info);
+    SDL_Quit();
+}
+
+
+
+void ui_input(chip8* chip8_state){
+    SDL_Event evt;
+    while(SDL_PollEvent(&evt)){
+        switch (evt.type) {
+            case SDL_EVENT_QUIT:
+                chip8_state->running = STATUS_STOPPED;
+                break;
+
+
+            case SDL_EVENT_KEY_DOWN:
+                switch (evt.key.key) {
+                    case SDLK_ESCAPE: {chip8_state->running = STATUS_STOPPED; break;}
+                    case SDLK_P: {
+                        chip8_state->running = 
+                        (chip8_state->running == STATUS_RUNNING) ? STATUS_PAUSED : STATUS_RUNNING;
+                        break;
+                    }
+                    case SDLK_1: {chip8_state->KP[0x1] = 1; break;}
+                    case SDLK_2: {chip8_state->KP[0x2] = 1; break;}
+                    case SDLK_3: {chip8_state->KP[0x3] = 1; break;}
+                    case SDLK_4: {chip8_state->KP[0xC] = 1; break;}
+                    case SDLK_Q: {chip8_state->KP[0x4] = 1; break;}
+                    case SDLK_W: {chip8_state->KP[0x5] = 1; break;}
+                    case SDLK_E: {chip8_state->KP[0x6] = 1; break;}
+                    case SDLK_R: {chip8_state->KP[0xD] = 1; break;} 
+                    case SDLK_A: {chip8_state->KP[0x7] = 1; break;}
+                    case SDLK_S: {chip8_state->KP[0x8] = 1; break;}
+                    case SDLK_D: {chip8_state->KP[0x9] = 1; break;}
+                    case SDLK_F: {chip8_state->KP[0xE] = 1; break;}
+                    case SDLK_Z: {chip8_state->KP[0xA] = 1; break;}
+                    case SDLK_X: {chip8_state->KP[0x0] = 1; break;}
+                    case SDLK_C: {chip8_state->KP[0xB] = 1; break;}
+                    case SDLK_V: {chip8_state->KP[0xF] = 1; break;}
+                    default: break;
+
+                }
+                break;
+
+                case SDL_EVENT_KEY_UP:
+                    switch (evt.key.key) {
+                        
+                        case SDLK_1: {chip8_state->KP[0x1] = 0; break;}
+                        case SDLK_2: {chip8_state->KP[0x2] = 0; break;}
+                        case SDLK_3: {chip8_state->KP[0x3] = 0; break;}
+                        case SDLK_4: {chip8_state->KP[0xC] = 0; break;}
+                        case SDLK_Q: {chip8_state->KP[0x4] = 0; break;}
+                        case SDLK_W: {chip8_state->KP[0x5] = 0; break;}
+                        case SDLK_E: {chip8_state->KP[0x6] = 0; break;}
+                        case SDLK_R: {chip8_state->KP[0xD] = 0; break;} 
+                        case SDLK_A: {chip8_state->KP[0x7] = 0; break;}
+                        case SDLK_S: {chip8_state->KP[0x8] = 0; break;}
+                        case SDLK_D: {chip8_state->KP[0x9] = 0; break;}
+                        case SDLK_F: {chip8_state->KP[0xE] = 0; break;}
+                        case SDLK_Z: {chip8_state->KP[0xA] = 0; break;}
+                        case SDLK_X: {chip8_state->KP[0x0] = 0; break;}
+                        case SDLK_C: {chip8_state->KP[0xB] = 0; break;}
+                        case SDLK_V: {chip8_state->KP[0xF] = 0; break;}
+                        default: break;
+
+                }
+                break;
+
+
+
+
+        }
+        
+    }
+}
+
+
+
+void ui_refresh(void){
+    int win_h, win_w;
+    SDL_GetWindowSize(win_canvas, &win_w, &win_h);
+    SDL_FRect dst = {0, 0, (float)win_w, (float)win_h};
+    SDL_RenderClear(ren_canvas);
+    SDL_RenderTexture(ren_canvas, tex_canvas,
+        NULL, &dst);
+
+    SDL_RenderPresent(ren_canvas);
+
+}
+
+
+void renderFBtoUI(chip8* chip8_state) {
+    uint32_t tex_pixels[SCREEN_W * SCREEN_H];
+    for (int row = 0; row < SCREEN_H; ++row) {
+        for (int col_per_byte = 0; col_per_byte < SCREEN_W / 8; col_per_byte++) {
+
+            int idx = BYTES_PER_ROW * row + col_per_byte;
+            uint8_t byte = chip8_state->FB[idx];
+
+            uint8_t nib1 = byte >> 4;
+            uint8_t nib2 = byte & 0x0F;
+
+            tex_pixels[row*64+col_per_byte*8+0] = draw_table[nib1][0];
+            tex_pixels[row*64+col_per_byte*8+1] = draw_table[nib1][1];
+            tex_pixels[row*64+col_per_byte*8+2] = draw_table[nib1][2];
+            tex_pixels[row*64+col_per_byte*8+3] = draw_table[nib1][3];
+            tex_pixels[row*64+col_per_byte*8+4] = draw_table[nib2][0];
+            tex_pixels[row*64+col_per_byte*8+5] = draw_table[nib2][1];
+            tex_pixels[row*64+col_per_byte*8+6] = draw_table[nib2][2];
+            tex_pixels[row*64+col_per_byte*8+7] = draw_table[nib2][3];
+        }
+    }
+
+    SDL_UpdateTexture(tex_canvas, NULL, 
+        tex_pixels, sizeof(uint32_t)*SCREEN_W);
+}
+
+
+void info_print(const char* fmt_string, ...){
+    
+    char string[128];
+    va_list args;
+    va_start(args, fmt_string);
+    vsnprintf(string, sizeof(string), fmt_string, args);
+    va_end(args);
+
+    int subslen  = 0;
+    int cursor   = 0;
+    static int linenum  = 0;
+    char buff[128];
+    
+
+    SDL_SetRenderDrawColor(ren_info, 0xff, 0xff, 0xff, 0xff);
+    SDL_SetRenderScale(ren_info, 2.0f, 2.0f);
+    for(int c=0; c<strlen(string); c++){
+        subslen++;
+        if(string[c]==0x0A || string[c+1]==0){
+            memset(buff, 0, sizeof(buff));
+            strncpy(buff, string+cursor, subslen);
+            //printf("%s", buff);
+            SDL_RenderDebugText(ren_info, 0.0f, (float)linenum*10.0f, buff);
+            subslen  = 0;
+            cursor   = c+1;
+            linenum++;
+        }
+    }
+
+    SDL_RenderPresent(ren_info);
+}
+
+
+
+void stat_print(chip8* chip8_state)
+{
+    info_print(
+        "PC=0x%04x SP=0x%02x I=0x%03x\n"
+        "V0=0x%02x V1=0x%02x V2=0x%02x V3=0x%02x \n"
+        "V4=0x%02x V5=0x%02x V6=0x%02x V7=0x%02x \n"
+        "V8=0x%02x V9=0x%02x VA=0x%02x VB=0x%02x \n"
+        "VC=0x%02x VD=0x%02x VE=0x%02x VF=0x%02x \n"
+        "DT=0x%02x ST=0x%02x err=0x%01x run=0x%01x \n"
+
+        "\nSTACK\n"
+        
+        "%04x\n%04x\n%04x\n%04x\n%04x\n%04x\n%04x\n%04x\n"
+        "%04x\n%04x\n%04x\n%04x\n%04x\n%04x\n%04x\n%04x\n"
+
+        , 
+        chip8_state->PC  , chip8_state->SP, chip8_state->I, 
+        chip8_state->V[0], chip8_state->V[1], chip8_state->V[2], chip8_state->V[3],
+        chip8_state->V[4], chip8_state->V[5], chip8_state->V[6], chip8_state->V[7],
+        chip8_state->V[8], chip8_state->V[9], chip8_state->V[10],chip8_state->V[11],
+        chip8_state->V[12],chip8_state->V[13],chip8_state->V[14],chip8_state->V[15],
+        chip8_state->DT, chip8_state->ST, chip8_state->errState, chip8_state->running,
+
+        chip8_state->STACK[0 ],
+        chip8_state->STACK[1 ],
+        chip8_state->STACK[2 ],
+        chip8_state->STACK[3 ],
+        chip8_state->STACK[4 ],
+        chip8_state->STACK[5 ],
+        chip8_state->STACK[6 ],
+        chip8_state->STACK[7 ],
+        chip8_state->STACK[8 ],
+        chip8_state->STACK[9 ],
+        chip8_state->STACK[10],
+        chip8_state->STACK[11],
+        chip8_state->STACK[12],
+        chip8_state->STACK[13],
+        chip8_state->STACK[14],
+        chip8_state->STACK[15]
+        
+
+    );
+}
