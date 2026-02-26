@@ -1,18 +1,21 @@
-#ifndef CHIP8_H
-#define CHIP8_H
+#pragma once
 #include <stdint.h>
 #include <stdbool.h>
 
 #define PROG_START_ADDR   0x200
-#define PROG_PREAMBLE     0x1FC //before prog we execute 00E0(clr screen) and 004B(turn disp. on)
 #define MEMORY_END        0xFFF
 #define MEMORY_START      0x000
-#define FONT_START_ADDR   0x000
-#define FONT_SET_SIZE     0x050 //font set should be 80 bytes placed between 0x000 and 0x50
-#define SCREEN_WIDTH      64
-#define SCREEN_HEIGHT     32
+
+#define FONT_SMALL_ADDR   0x000
+#define FONT_SMALL_SIZE   80
+#define FONT_LARGE_ADDR   0x050
+#define FONT_LARGE_SIZE   100
+
+#define SCREEN_WIDTH      128
+#define SCREEN_HEIGHT     64
 #define PIXEL_NUMBER      (SCREEN_HEIGHT * SCREEN_WIDTH)
-#define BYTES_PER_ROW     (SCREEN_WIDTH / 8)
+#define BYTES_PER_ROW     (SCREEN_WIDTH /  8)
+#define WORDS_PER_ROW     (SCREEN_WIDTH / 16)
 #define FB_SIZE           (BYTES_PER_ROW * SCREEN_HEIGHT)
 #define STACK_SIZE_UINT16 16
 
@@ -25,32 +28,54 @@ typedef enum{
     ERR_IGNORED_OPCODE,
     ERR_UNKNOWN_OPCODE,
     ERR_UNIMPL_OPCODE
-} error;
+} chip8_error;
 
 typedef enum{
    STATUS_RUNNING = 0,
    STATUS_PAUSED,
    STATUS_STOPPED 
-} status;
+} chip8_status;
+
+typedef enum{
+    VARIANT_CHIP8 = 0,
+    VARIANT_SCHIP
+} chip8_variant;
 
 typedef struct{
-    uint8_t  MEM[4096];  //memory
-    uint8_t  FB[256];    //framebuffer of 64x32 on/off pixels (256 bytes)
-    uint16_t STACK[16];  //stack
-    uint16_t V[16], I;   //V0...VF, I regs. V regs really should 8 but i store them in 16 bit container
-    uint8_t  KP[16];     //keypad
-    uint8_t  DT, ST, SP; //timers, stack pointer registers
-    uint16_t PC;         //program counter register
+    uint64_t IPS;
+    uint64_t FPS;
+} chip8_options;
 
-    error    errState;
-    bool     drawFlag;
-    status   running;
+
+
+typedef struct chip8{
+    //virtual machine metadata
+    chip8_variant chipVariant;
+    chip8_options chipOptions;
+
+    //state description
+    uint8_t  MEM[4096];  //Working RAM
+    uint8_t  FB[FB_SIZE];   //Framebuffer
+    uint16_t STACK[16];  //Stack
+    uint16_t V[16];
+    uint16_t I;          //V0...VF, I regs. V regs really should 8 but i store them in 16 bit container
+    uint8_t  KP[16];     //Keypad
+    uint8_t  DT, ST, SP; //Timers, stack pointer
+    uint16_t PC;         //Program counter
     uint16_t rnd;
+
+    
+    // runtime configuration
+    chip8_error    errState;
+    bool           drawFlag;
+    bool           extendedMode;
+    chip8_status   running;
+
+
+    void (*opExecute)(struct chip8* chip8_state);
     
 
 } chip8;
 
-void chip8Init(chip8* chip8_state);
-void chip8Step(chip8* chip8_state);
-
-#endif
+void memdump(chip8* chip8_state, const char *filename);
+void chip8Init(chip8* chip8_state, chip8_variant variant);

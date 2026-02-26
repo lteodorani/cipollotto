@@ -1,3 +1,9 @@
 .vscode/
 .idea/
-.progs/
+progs/
+build/
+a.out
+RAM.bin
+*.log
+*.o
+*.tmp

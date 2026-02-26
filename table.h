@@ -1,17 +1,4 @@
-#pragma once
-
-#include "cipollotto.h"
-
-int  ui_init(void);
-void ui_deinit(void);
-void ui_refresh(void);
-void ui_input(chip8* chip8_state);
-
-void renderFBtoUI(chip8* chip8_state);
-void stat_print(chip8* chip8_state); 
-void info_print(const char *formatted_msg, ...);
-
-
+#include <stdint.h>
 
 static const uint32_t white = 0xFFFFFFFF;
 static const uint32_t black = 0x000000FF;
@@ -26,28 +13,7 @@ static const uint32_t colo4 = 0x662200ff;
 static const uint32_t On  = green;
 static const uint32_t Off = lgray;
 
-// compile-time initialized table (16 rows × 4 columns)
-static const uint32_t draw_table[16][4] = {
-    { Off, Off, Off, Off },
-    { Off, Off, Off, On  },
-    { Off, Off, On,  Off },
-    { Off, Off, On,  On  },
-    { Off, On,  Off, Off },
-    { Off, On,  Off, On  },
-    { Off, On,  On,  Off },
-    { Off, On,  On,  On  },
-    { On,  Off, Off, Off },
-    { On,  Off, Off, On  },
-    { On,  Off, On,  Off },
-    { On,  Off, On,  On  },
-    { On,  On,  Off, Off },
-    { On,  On,  Off, On  },
-    { On,  On,  On,  Off },
-    { On,  On,  On,  On  },
-};
-
-
-static const uint32_t draw_table_large[256][8] = {
+static const uint32_t draw_table[256][8] = {
     { Off, Off, Off, Off, Off, Off, Off, Off },  // 0x00  ........
     { Off, Off, Off, Off, Off, Off, Off,  On },  // 0x01  .......█
     { Off, Off, Off, Off, Off, Off,  On, Off },  // 0x02  ......█.

@@ -29,7 +29,7 @@ int main(int argc, char** argv)
 
 
     chip8 cipollotto;
-    chip8Init(&cipollotto);
+    chip8Init(&cipollotto, VARIANT_SCHIP);
     size_t read = fread(cipollotto.MEM+PROG_START_ADDR, 1, fsize, fROM);
     if(read != (size_t)fsize)
         return -4;
@@ -41,8 +41,8 @@ int main(int argc, char** argv)
 
 
     #define NANOS_IN_A_S 1000000000L
-    long framesPerSecond        = 60;
-    long instructionsPerSecond  = 500;
+    long framesPerSecond        = cipollotto.chipOptions.FPS;
+    long instructionsPerSecond  = cipollotto.chipOptions.IPS;
     long instructionsPerFrame   = instructionsPerSecond / framesPerSecond;
     long frameTimeNs            = NANOS_IN_A_S / framesPerSecond;
     long extraInstr = 0;
@@ -58,9 +58,8 @@ int main(int argc, char** argv)
     struct timespec TnextRefresh;
     long instrCounter = 0;
     long frameCounter = 0;
-    info_print("CHE\nCAZZO %d", 100);
-    info_print("CHE\nCAZZO %d", 100);
-    info_print("1+3=\n   %d", 4);
+
+    info_print("CING CHONG PING PONG");
     clock_gettime(CLOCK_MONOTONIC, &TnextRefresh);
     while(cipollotto.running != STATUS_STOPPED){
         /*
@@ -88,7 +87,7 @@ int main(int argc, char** argv)
         
         long k;
         for(k=0; k<(instructionsPerFrame + extraInstr); k++){
-            chip8Step(&cipollotto);
+            cipollotto.opExecute(&cipollotto);
         }
         instrCounter += k;
         extraInstr = !(extraInstr & 1L);
@@ -111,7 +110,7 @@ int main(int argc, char** argv)
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TnextRefresh, NULL);
     }
 
-
+    memdump(&cipollotto, "RAM.bin");
     ui_deinit();
     return 0;
 }

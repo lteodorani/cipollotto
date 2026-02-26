@@ -1,61 +1,34 @@
 #include "cipollotto.h"
 #include "ui.h"
+
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_render.h>
+#include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_video.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <SDL3/SDL.h>
 #include <stdio.h>
 #include <SDL3_ttf/SDL_ttf.h>
+#include <string.h>
 
 
 #define WINDOW_W 1200
 #define WINDOW_H 600
-#define SCREEN_W 64
-#define SCREEN_H 32
+
+#define TEXTURE_WIDTH 128
+#define TEXTURE_HEIGTH 64
 
 
-static SDL_Window*   win_canvas;
-static SDL_Renderer* ren_canvas;
-static SDL_Texture*  tex_canvas;
+static SDL_Window*   win_canvas = NULL;
+static SDL_Renderer* ren_canvas = NULL;
+static SDL_Texture*  tex_canvas = NULL;
 
-static SDL_Window*   win_info  ;
-static SDL_Renderer* ren_info  ;
-
-
-static const uint32_t white = 0xFFFFFFFF;
-static const uint32_t black = 0x000000FF;
-static const uint32_t green = 0x00FF00FF;
-static const uint32_t lgray = 0x1C1C1CFF;
-
-static const uint32_t On  = green;
-static const uint32_t Off = lgray;
-
-/* compile-time initialized table (16 rows × 4 columns) */
-static const uint32_t draw_table[16][4] = {
-    { Off, Off, Off, Off },
-    { Off, Off, Off, On  },
-    { Off, Off, On,  Off },
-    { Off, Off, On,  On  },
-    { Off, On,  Off, Off },
-    { Off, On,  Off, On  },
-    { Off, On,  On,  Off },
-    { Off, On,  On,  On  },
-    { On,  Off, Off, Off },
-    { On,  Off, Off, On  },
-    { On,  Off, On,  Off },
-    { On,  Off, On,  On  },
-    { On,  On,  Off, Off },
-    { On,  On,  Off, On  },
-    { On,  On,  On,  Off },
-    { On,  On,  On,  On  },
-};
-
-
+static SDL_Window*   win_info = NULL;
+static SDL_Renderer* ren_info = NULL;
 
 int ui_init(void){
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
@@ -71,9 +44,9 @@ int ui_init(void){
     //Texture format:
     // 4 x 8 = 32 bits
     tex_canvas = SDL_CreateTexture(ren_canvas, 
-        SDL_PIXELFORMAT_RGBA8888, 
+        SDL_PIXELFORMAT_RGBA8888,
         SDL_TEXTUREACCESS_STREAMING, 
-        SCREEN_W, SCREEN_H);
+        TEXTURE_WIDTH, TEXTURE_HEIGTH);
 
     if(win_canvas == NULL || ren_canvas == NULL || tex_canvas == NULL || win_info == NULL){
         SDL_LogError(SDL_LOG_CATEGORY_RENDER, "Could not initialize display. %s", SDL_GetError());
@@ -183,36 +156,44 @@ void ui_refresh(void){
 
 }
 
-
 void renderFBtoUI(chip8* chip8_state) {
-    uint32_t tex_pixels[SCREEN_W * SCREEN_H];
-    for (int row = 0; row < SCREEN_H; ++row) {
-        for (int col_per_byte = 0; col_per_byte < SCREEN_W / 8; col_per_byte++) {
+    uint32_t tex_pixels[TEXTURE_WIDTH * TEXTURE_HEIGTH];
+    for (int row = 0; row < TEXTURE_HEIGTH; ++row) {
+        for (int col_per_byte = 0; col_per_byte < TEXTURE_WIDTH / 8; col_per_byte++) {
 
             int idx = BYTES_PER_ROW * row + col_per_byte;
+            if(idx > FB_SIZE){
+                printf("out of bounds\n");
+            }
             uint8_t byte = chip8_state->FB[idx];
-
+            
+            
+            memcpy((void *)(tex_pixels+(row*TEXTURE_WIDTH+col_per_byte*8)),
+              draw_table_large[byte],
+                sizeof(uint32_t)*8
+            );
+            /*
             uint8_t nib1 = byte >> 4;
             uint8_t nib2 = byte & 0x0F;
 
-            tex_pixels[row*64+col_per_byte*8+0] = draw_table[nib1][0];
-            tex_pixels[row*64+col_per_byte*8+1] = draw_table[nib1][1];
-            tex_pixels[row*64+col_per_byte*8+2] = draw_table[nib1][2];
-            tex_pixels[row*64+col_per_byte*8+3] = draw_table[nib1][3];
-            tex_pixels[row*64+col_per_byte*8+4] = draw_table[nib2][0];
-            tex_pixels[row*64+col_per_byte*8+5] = draw_table[nib2][1];
-            tex_pixels[row*64+col_per_byte*8+6] = draw_table[nib2][2];
-            tex_pixels[row*64+col_per_byte*8+7] = draw_table[nib2][3];
+            tex_pixels[row*TEXTURE_WIDTH+col_per_byte*8+0] = draw_table[nib1][0];
+            tex_pixels[row*TEXTURE_WIDTH+col_per_byte*8+1] = draw_table[nib1][1];
+            tex_pixels[row*TEXTURE_WIDTH+col_per_byte*8+2] = draw_table[nib1][2];
+            tex_pixels[row*TEXTURE_WIDTH+col_per_byte*8+3] = draw_table[nib1][3];
+            tex_pixels[row*TEXTURE_WIDTH+col_per_byte*8+4] = draw_table[nib2][0];
+            tex_pixels[row*TEXTURE_WIDTH+col_per_byte*8+5] = draw_table[nib2][1];
+            tex_pixels[row*TEXTURE_WIDTH+col_per_byte*8+6] = draw_table[nib2][2];
+            tex_pixels[row*TEXTURE_WIDTH+col_per_byte*8+7] = draw_table[nib2][3];
+            */
         }
     }
 
     SDL_UpdateTexture(tex_canvas, NULL, 
-        tex_pixels, sizeof(uint32_t)*SCREEN_W);
+        tex_pixels, sizeof(uint32_t)*TEXTURE_WIDTH);
 }
 
 
 void info_print(const char* fmt_string, ...){
-    
     char string[128];
     va_list args;
     va_start(args, fmt_string);
