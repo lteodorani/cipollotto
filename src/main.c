@@ -59,7 +59,9 @@ int main(int argc, char** argv)
     long instrCounter = 0;
     long frameCounter = 0;
 
-    info_print("CING CHONG PING PONG");
+    info_print("Rom:%s\nVariant:%d",
+               argv[1], cipollotto.chipVariant);
+    
     clock_gettime(CLOCK_MONOTONIC, &TnextRefresh);
     while(cipollotto.running != STATUS_STOPPED){
         /*
@@ -74,9 +76,8 @@ int main(int argc, char** argv)
             TnextRefresh.tv_sec++;
             TnextRefresh.tv_nsec -= NANOS_IN_A_S;
         }
-        //info_print("CHE\nCAZZO %d", 100);
+
         ui_input(&cipollotto);
-        //stat_print(&cipollotto);
         
         if(cipollotto.running == STATUS_PAUSED){
             ui_refresh();
@@ -84,7 +85,6 @@ int main(int argc, char** argv)
             continue;
         }
 
-        
         long k;
         for(k=0; k<(instructionsPerFrame + extraInstr); k++){
             cipollotto.opExecute(&cipollotto);
@@ -95,8 +95,6 @@ int main(int argc, char** argv)
         //update timers
         if(cipollotto.DT > 0){cipollotto.DT--;}
         if(cipollotto.ST > 0){cipollotto.ST--;} //should emit sound
-
-
 
         if(cipollotto.drawFlag){
             renderFBtoUI(&cipollotto);

@@ -70,7 +70,7 @@ void chip8Step(chip8* chip8_state){
     PC+=2;
     if(PC < MEMORY_START || PC > MEMORY_END){
         chip8_state->errState = ERR_MEM_OUT_OF_BOUNDS;
-        running = STATUS_PAUSED;
+        running = STATUS_STOPPED;
     }
     //dispatch
     uint16_t h   = (opcode & 0xF000) >> 12;
@@ -96,6 +96,7 @@ void chip8Step(chip8* chip8_state){
 
         default:
             chip8_state->errState = ERR_UNKNOWN_OPCODE;
+            running = STATUS_STOPPED;
             break;
     }
 
@@ -117,7 +118,7 @@ void schipStep(chip8* chip8_state){
 
     switch(h)
     {
-        case 0x0: {handle_0nnn(chip8_state, opcode);         break;}
+        case 0x0: {handle_00_schip(chip8_state, opcode);     break;}
         case 0x1: {op_jp (chip8_state, opcode);              break;}
         case 0x2: {op_call(chip8_state, opcode);             break;}
         case 0x3: {op_se_byte (chip8_state, opcode);         break;}
@@ -130,12 +131,13 @@ void schipStep(chip8* chip8_state){
         case 0xA: {op_ld_I(chip8_state, opcode);             break;}
         case 0xB: {op_jp_vx(chip8_state, opcode);            break;}
         case 0xC: {op_rnd(chip8_state, opcode);              break;}
-        case 0xD: {op_drw_schip11(chip8_state, opcode);      break;}
+        case 0xD: {op_drw_schip(chip8_state, opcode);        break;}
         case 0xE: {handle_Exnn(chip8_state, opcode);         break;}        
-        case 0xF: {handle_Fxnn_schip11(chip8_state, opcode); break;}
+        case 0xF: {handle_Fxnn_schip(chip8_state, opcode);   break;}
 
         default:
             chip8_state->errState = ERR_UNKNOWN_OPCODE;
+            running = STATUS_STOPPED;
             break;
     }
 }

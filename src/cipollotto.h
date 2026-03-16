@@ -54,14 +54,14 @@ typedef struct chip8{
     chip8_options chipOptions;
 
     //state description
-    uint8_t  MEM[4096];  //Working RAM
-    uint8_t  FB[FB_SIZE];   //Framebuffer
-    uint16_t STACK[16];  //Stack
+    uint8_t  MEM[4096];   //Working RAM
+    uint8_t  FB[FB_SIZE]; //Framebuffer
+    uint16_t STACK[16];   //Stack
     uint16_t V[16];
-    uint16_t I;          //V0...VF, I regs. V regs really should 8 but i store them in 16 bit container
-    uint8_t  KP[16];     //Keypad
-    uint8_t  DT, ST, SP; //Timers, stack pointer
-    uint16_t PC;         //Program counter
+    uint16_t I;           //V0...VF, I regs. V regs really should 8 but i store them in 16 bit container
+    uint8_t  KP[16];      //Keypad
+    uint8_t  DT, ST, SP;  //Timers, stack pointer
+    uint16_t PC;          //Program counter
     uint16_t rnd;
 
     
