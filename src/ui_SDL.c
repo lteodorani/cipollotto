@@ -77,16 +77,16 @@ void ui_input(chip8* chip8_state){
     while(SDL_PollEvent(&evt)){
         switch (evt.type) {
             case SDL_EVENT_QUIT:
-                chip8_state->running = STATUS_STOPPED;
+                chip8_state->running = CIPOLLOTTO_STATUS_HALTED;
                 break;
 
 
             case SDL_EVENT_KEY_DOWN:
                 switch (evt.key.key) {
-                    case SDLK_ESCAPE: {chip8_state->running = STATUS_STOPPED; break;}
+                    case SDLK_ESCAPE: {chip8_state->running = CIPOLLOTTO_STATUS_HALTED; break;}
                     case SDLK_P: {
                         chip8_state->running = 
-                        (chip8_state->running == STATUS_RUNNING) ? STATUS_PAUSED : STATUS_RUNNING;
+                        (chip8_state->running == CIPOLLOTTO_STATUS_RUNNING) ? CIPOLLOTTO_STATUS_PAUSED : CIPOLLOTTO_STATUS_RUNNING;
                         break;
                     }
                     case SDLK_1: {chip8_state->KP[0x1] = 1; break;}

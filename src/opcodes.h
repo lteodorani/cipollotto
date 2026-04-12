@@ -200,69 +200,10 @@ inline static uint16_t drw_hires(chip8* chip8_state, uint16_t originX, uint16_t 
     // the numbers of rows clipped at the bottom border too
     uint16_t collisions = collidedRowsN + (rowN - drawnRows);
 
-    printf("%d\n", collisions);
+    //printf("%d\n", collisions);
     return collisions;
 
 }
-
-/*
-inline static uint16_t drw_lores_old(chip8* chip8_state, uint16_t originX, uint16_t originY, uint16_t n){
-    uint16_t offsetX = originX % 8; // pixel offset a byte
-    uint16_t idx_byte_of_x = originX / 8;
-    uint16_t visible_bits = MIN(originX + 16, SCREEN_WIDTH) - originX;
-    uint32_t  clip_mask_x = (0x00FFFFFFu << (16 - visible_bits));
-    
-    uint16_t collision = 0;
-    uint16_t rowN = (n == 0) ? 16 : n;
-    for (uint16_t row = 0; row < rowN; ++row) {
-        
-        // --- Y clipping (classic CHIP-8) ---
-        uint16_t offsetY = originY + 2*row;
-        if (offsetY >= SCREEN_HEIGHT) break;
-        
-        // --- Compute framebuffer byte indices ---
-        uint16_t fb_idx_tl = BYTES_PER_ROW * offsetY + idx_byte_of_x;
-        uint16_t fb_idx_tc = BYTES_PER_ROW * offsetY + ((idx_byte_of_x + 1) % BYTES_PER_ROW);
-        uint16_t fb_idx_tr = BYTES_PER_ROW * offsetY + ((idx_byte_of_x + 2) % BYTES_PER_ROW);
-        
-        uint16_t fb_idx_bl = BYTES_PER_ROW * (offsetY + 1) + idx_byte_of_x;
-        uint16_t fb_idx_bc = BYTES_PER_ROW * (offsetY + 1) + ((idx_byte_of_x + 1) % BYTES_PER_ROW);
-        uint16_t fb_idx_br = BYTES_PER_ROW * (offsetY + 1) + ((idx_byte_of_x + 2) % BYTES_PER_ROW);
-
-        // --- Fetch current framebuffer bytes ---
-        uint8_t fb_byte_l = FB[fb_idx_tl];
-        uint8_t fb_byte_c = FB[fb_idx_tc];
-        uint8_t fb_byte_r = FB[fb_idx_tr];
-
-        // --- Fetch sprite row bits and apply right-edge screen clipping ---
-        uint32_t sprite_bits32 = ((uint32_t)dupeBitsInPlace32(MEM[(I + row) & 0x0FFF]) & clip_mask_x)
-                                 << (8 - offsetX);
-
-        uint8_t sprite_l = (uint8_t)(sprite_bits32 >> 16);
-        uint8_t sprite_c = (uint8_t)(sprite_bits32 >>  8);
-        uint8_t sprite_r = (uint8_t)(sprite_bits32);
-        
-        // Detect collision
-        collision |= (
-            (fb_byte_l & sprite_l) |
-            (fb_byte_c & sprite_c) | 
-            (fb_byte_r & sprite_r)
-        ) != 0;
-
-        // XOR sprite bits into framebuffer,
-        // then copy bottom subpixel rows
-        FB[fb_idx_tl] ^= sprite_l; 
-        FB[fb_idx_tc] ^= sprite_c;
-        FB[fb_idx_tr] ^= sprite_r;
-        FB[fb_idx_bl]  = FB[fb_idx_tl];
-        FB[fb_idx_bc]  = FB[fb_idx_tc];
-        FB[fb_idx_br]  = FB[fb_idx_tr];
-    }
-
-    return collision;
-}
-*/
-
 
 inline static uint16_t drw_lores(chip8* chip8_state, uint16_t originX, uint16_t originY, uint16_t n){
     uint16_t collidedRowsN = 0;
@@ -293,7 +234,7 @@ inline static uint16_t drw_lores(chip8* chip8_state, uint16_t originX, uint16_t 
 
     }
 
-    printf("%d\n", collidedRowsN);
+    //printf("%d\n", collidedRowsN);
     return collidedRowsN;
 
 }
@@ -353,13 +294,13 @@ inline static void handle_0nnn(chip8* chip8_state, uint16_t opcode){
                 PC = STACK[SP];
             }
             else {
-                chip8_state->errState = ERR_STACK_UNDERFLOW;
-                running = STATUS_PAUSED;
+                chip8_state->errState = CIPOLLOTTO_ERR_STACK_OOB;
+                running = CIPOLLOTTO_STATUS_HALTED;
             }
             break;
 
         default:
-            chip8_state->errState = ERR_IGNORED_OPCODE;
+            chip8_state->errState = CIPOLLOTTO_ERR_INVALID_OPCODE;
             break;
     }
 }
@@ -390,8 +331,8 @@ inline static void op_call(chip8* chip8_state, uint16_t opcode){
         SP++;
         PC = nnn;
     }else {
-        chip8_state->errState = ERR_STACK_OVERFLOW;
-        running = STATUS_PAUSED;
+        chip8_state->errState = CIPOLLOTTO_ERR_STACK_OOB;
+        running = CIPOLLOTTO_STATUS_HALTED;
     }
 }
 
@@ -440,8 +381,7 @@ inline static void op_ld_I(chip8* chip8_state, uint16_t opcode){
 inline static void op_rnd(chip8* chip8_state, uint16_t opcode){
     uint16_t nn  =  opcode & 0x00FF;
     uint16_t x   = (opcode & 0x0F00) >> 8;
-    rnd = (uint16_t)(LCG_rand()>>16);
-    V[x] = rnd & nn;
+    V[x] = (uint16_t)(LCG_rand()>>16) & nn;
 }
 
 //Add nn to Vn (carry flag is not changed).
@@ -571,8 +511,8 @@ inline static void handle_Fxnn(chip8* chip8_state, uint16_t opcode){
                 MEM[I+2] =  V[x] % 10;
             }
             else {
-                chip8_state->errState = ERR_MEM_OUT_OF_BOUNDS;
-                running = STATUS_PAUSED;
+                chip8_state->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
+                running = CIPOLLOTTO_STATUS_HALTED;
             }
             break;
         case 0x55:
@@ -583,8 +523,8 @@ inline static void handle_Fxnn(chip8* chip8_state, uint16_t opcode){
                 I += x + 1;
             }
             else {
-                chip8_state->errState = ERR_MEM_OUT_OF_BOUNDS;
-                running = STATUS_PAUSED;
+                chip8_state->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
+                running = CIPOLLOTTO_STATUS_HALTED;
             }
             break;
         case 0x65:
@@ -595,8 +535,8 @@ inline static void handle_Fxnn(chip8* chip8_state, uint16_t opcode){
                 I += x + 1;
             }
             else {
-                chip8_state->errState = ERR_MEM_OUT_OF_BOUNDS;
-                running = STATUS_PAUSED;
+                chip8_state->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
+                running = CIPOLLOTTO_STATUS_HALTED;
             }
             break;
 
@@ -750,14 +690,14 @@ inline static void handle_0nnn_schip(chip8* chip8_state, uint16_t opcode){
                 PC = STACK[SP];
             }
             else {
-                chip8_state->errState = ERR_STACK_UNDERFLOW;
-                running = STATUS_STOPPED;
+                chip8_state->errState = CIPOLLOTTO_ERR_STACK_OOB;
+                running = CIPOLLOTTO_STATUS_HALTED;
             }
             break;
         
         // schip extension 0x00__ opcodes
         case 0x0FD:
-            running = STATUS_STOPPED;
+            running = CIPOLLOTTO_STATUS_HALTED;
             break;
 
         case 0x0FF:
@@ -779,8 +719,8 @@ inline static void handle_0nnn_schip(chip8* chip8_state, uint16_t opcode){
             break;
 
         default:
-            chip8_state->errState = ERR_UNKNOWN_OPCODE;
-            running = STATUS_STOPPED;
+            chip8_state->errState = CIPOLLOTTO_ERR_INVALID_OPCODE;
+            running = CIPOLLOTTO_STATUS_HALTED;
             break;
     }
 }
@@ -793,7 +733,7 @@ inline static void handle_00_schip(chip8* chip8_state, uint16_t opcode){
         case 0x0C0:
             switch(__n){
                 case 0x000:
-                    running = STATUS_STOPPED;
+                    running = CIPOLLOTTO_STATUS_HALTED;
                     break;
                 default:                    
                     scrolln(chip8_state, __n);
@@ -850,7 +790,7 @@ inline static void handle_Fxnn_schip(chip8* chip8_state, uint16_t opcode){
         case 0x1E:
             I += V[x] & 0xFF;
             if(I > 0xFFF)
-                running = STATUS_STOPPED;
+                running = CIPOLLOTTO_STATUS_HALTED;
 
             break;
         case 0x29:
@@ -870,8 +810,8 @@ inline static void handle_Fxnn_schip(chip8* chip8_state, uint16_t opcode){
                 MEM[I+2] =  V[x] % 10;
             }
             else {
-                chip8_state->errState = ERR_MEM_OUT_OF_BOUNDS;
-                running = STATUS_PAUSED;
+                chip8_state->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
+                running = CIPOLLOTTO_STATUS_HALTED;
             }
             break;
 
@@ -889,8 +829,8 @@ inline static void handle_Fxnn_schip(chip8* chip8_state, uint16_t opcode){
                 //I += x;
             }
             else {
-                chip8_state->errState = ERR_MEM_OUT_OF_BOUNDS;
-                running = STATUS_PAUSED;
+                chip8_state->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
+                running = CIPOLLOTTO_STATUS_HALTED;
             }
             break;
         case 0x65:
@@ -901,8 +841,8 @@ inline static void handle_Fxnn_schip(chip8* chip8_state, uint16_t opcode){
                 //I += x;
             }
             else {
-                chip8_state->errState = ERR_MEM_OUT_OF_BOUNDS;
-                running = STATUS_PAUSED;
+                chip8_state->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
+                running = CIPOLLOTTO_STATUS_HALTED;
             }
             break;
             

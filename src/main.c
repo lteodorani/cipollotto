@@ -29,7 +29,7 @@ int main(int argc, char** argv)
 
 
     chip8 cipollotto;
-    chip8Init(&cipollotto, VARIANT_SCHIP);
+    chip8Init(&cipollotto, CIPOLLOTTO_VARIANT_SCHIP);
     size_t read = fread(cipollotto.MEM+PROG_START_ADDR, 1, fsize, fROM);
     if(read != (size_t)fsize)
         return -4;
@@ -63,7 +63,7 @@ int main(int argc, char** argv)
                argv[1], cipollotto.chipVariant);
     
     clock_gettime(CLOCK_MONOTONIC, &TnextRefresh);
-    while(cipollotto.running != STATUS_STOPPED){
+    while(cipollotto.running != CIPOLLOTTO_STATUS_HALTED){
         /*
         Calcola tempo assoluto del prossimo frame.
         necessita clock_nanosleep(), che usa timespec.
@@ -79,7 +79,7 @@ int main(int argc, char** argv)
 
         ui_input(&cipollotto);
         
-        if(cipollotto.running == STATUS_PAUSED){
+        if(cipollotto.running == CIPOLLOTTO_STATUS_PAUSED){
             ui_refresh();
             clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TnextRefresh, NULL);
             continue;

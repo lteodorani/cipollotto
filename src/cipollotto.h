@@ -19,26 +19,25 @@
 #define FB_SIZE           (BYTES_PER_ROW * SCREEN_HEIGHT)
 #define STACK_SIZE_UINT16 16
 
-typedef enum{
-    ERR_OK = 0,
-    ERR_STACK_UNDERFLOW,
-    ERR_STACK_OVERFLOW,
-    ERR_INVALID_OPCODE,
-    ERR_MEM_OUT_OF_BOUNDS,
-    ERR_IGNORED_OPCODE,
-    ERR_UNKNOWN_OPCODE,
-    ERR_UNIMPL_OPCODE
-} chip8_error;
 
 typedef enum{
-   STATUS_RUNNING = 0,
-   STATUS_PAUSED,
-   STATUS_STOPPED 
+    CIPOLLOTTO_OK = 0,
+    CIPOLLOTTO_ERR_STACK_OOB,
+    CIPOLLOTTO_ERR_MEMORY_OOB,
+    CIPOLLOTTO_ERR_INVALID_OPCODE,
+} chip8_error;
+
+
+typedef enum{
+   CIPOLLOTTO_STATUS_RUNNING = 0,
+   CIPOLLOTTO_STATUS_HALTED,
+   CIPOLLOTTO_STATUS_PAUSED,
+    
 } chip8_status;
 
 typedef enum{
-    VARIANT_CHIP8 = 0,
-    VARIANT_SCHIP
+    CIPOLLOTTO_VARIANT_CHIP8 = 0,
+    CIPOLLOTTO_VARIANT_SCHIP
 } chip8_variant;
 
 typedef struct{
@@ -57,12 +56,14 @@ typedef struct chip8{
     uint8_t  MEM[4096];   //Working RAM
     uint8_t  FB[FB_SIZE]; //Framebuffer
     uint16_t STACK[16];   //Stack
-    uint16_t V[16];
-    uint16_t I;           //V0...VF, I regs. V regs really should 8 but i store them in 16 bit container
-    uint8_t  KP[16];      //Keypad
+
+    // TODO: convert to u8 opcodes.h
+        uint16_t V[16];
+        uint16_t I;           //V0...VF, I regs. V regs really should 8 but i store them in 16 bit container
+    
+        uint8_t  KP[16];      //Keypad
     uint8_t  DT, ST, SP;  //Timers, stack pointer
     uint16_t PC;          //Program counter
-    uint16_t rnd;
 
     
     // runtime configuration

@@ -139,7 +139,7 @@ void renderFBtoUI(chip8* chip8_state) {
 
 
 
-/* print scrolling message */
+/* print message in the info window */
 void info_print(const char *formatted_msg, ...) {
     char string[INFO_W * INFO_H];
     va_list args;

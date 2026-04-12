@@ -63,14 +63,13 @@ static const uint8_t large_font_data[FONT_LARGE_SIZE] = {
 
 void chip8Step(chip8* chip8_state){
     //fetch opcode taking care of endianess. chip-8 is big endian,
-    //but x86 is little endian, requiring to read the two bytes of
-    //the 16-bit opcodes separatedly
+    //but x86 is little endian
     
     uint16_t opcode = (MEM[PC] << 8) | (MEM[PC+1]);
     PC+=2;
     if(PC < MEMORY_START || PC > MEMORY_END){
-        chip8_state->errState = ERR_MEM_OUT_OF_BOUNDS;
-        running = STATUS_STOPPED;
+        chip8_state->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
+        running = CIPOLLOTTO_STATUS_HALTED;
     }
     //dispatch
     uint16_t h   = (opcode & 0xF000) >> 12;
@@ -95,8 +94,8 @@ void chip8Step(chip8* chip8_state){
         case 0xF: {handle_Fxnn(chip8_state, opcode); break;}
 
         default:
-            chip8_state->errState = ERR_UNKNOWN_OPCODE;
-            running = STATUS_STOPPED;
+            chip8_state->errState = CIPOLLOTTO_ERR_INVALID_OPCODE;
+            running = CIPOLLOTTO_STATUS_HALTED;
             break;
     }
 
@@ -110,8 +109,8 @@ void schipStep(chip8* chip8_state){
     uint16_t opcode = (MEM[PC] << 8) | (MEM[PC+1]);
     PC+=2;
     if(PC < MEMORY_START || PC > MEMORY_END){
-        chip8_state->errState = ERR_MEM_OUT_OF_BOUNDS;
-        running = STATUS_PAUSED;
+        chip8_state->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
+        running = CIPOLLOTTO_STATUS_HALTED;
     }
     //dispatch
     uint16_t h   = (opcode & 0xF000) >> 12;
@@ -136,8 +135,8 @@ void schipStep(chip8* chip8_state){
         case 0xF: {handle_Fxnn_schip(chip8_state, opcode);   break;}
 
         default:
-            chip8_state->errState = ERR_UNKNOWN_OPCODE;
-            running = STATUS_STOPPED;
+            chip8_state->errState = CIPOLLOTTO_ERR_INVALID_OPCODE;
+            running = CIPOLLOTTO_STATUS_HALTED;
             break;
     }
 }
@@ -148,8 +147,8 @@ void chip8Init(chip8* chip8_state, chip8_variant variant){
     memset(chip8_state, 0, sizeof(chip8));
     PC = PROG_START_ADDR;
     SP = 0;
-
-    if(variant == VARIANT_SCHIP){
+    
+    if(variant == CIPOLLOTTO_VARIANT_SCHIP){
         memcpy(&MEM[FONT_SMALL_ADDR], small_font_data, FONT_SMALL_SIZE);
         memcpy(&MEM[FONT_LARGE_ADDR], large_font_data, FONT_LARGE_SIZE);
         chip8_state->chipOptions = chipOptionsSchip;
@@ -161,9 +160,9 @@ void chip8Init(chip8* chip8_state, chip8_variant variant){
         chip8_state->chipOptions = chipOptionsVanilla;
         chip8_state->opExecute   = chip8Step;
     }
-
-    chip8_state->errState = ERR_OK;
-    running = STATUS_RUNNING;
+    chip8_state->chipVariant = variant;
+    chip8_state->errState = CIPOLLOTTO_OK;
+    running = CIPOLLOTTO_STATUS_RUNNING;
 }
 
 
