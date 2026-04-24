@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 
     chip8 cipollotto;
     chip8Init(&cipollotto, CIPOLLOTTO_VARIANT_SCHIP);
-    size_t read = fread(cipollotto.MEM+PROG_START_ADDR, 1, fsize, fROM);
+    size_t read = fread(cipollotto.state.MEM+PROG_START_ADDR, 1, fsize, fROM);
     if(read != (size_t)fsize)
         return -4;
     fclose(fROM);
@@ -41,8 +41,8 @@ int main(int argc, char** argv)
 
 
     #define NANOS_IN_A_S 1000000000L
-    long framesPerSecond        = cipollotto.chipOptions.FPS;
-    long instructionsPerSecond  = cipollotto.chipOptions.IPS;
+    long framesPerSecond        = cipollotto.clock.FPS;
+    long instructionsPerSecond  = cipollotto.clock.IPS;
     long instructionsPerFrame   = instructionsPerSecond / framesPerSecond;
     long frameTimeNs            = NANOS_IN_A_S / framesPerSecond;
     long extraInstr = 0;
@@ -59,11 +59,11 @@ int main(int argc, char** argv)
     long instrCounter = 0;
     long frameCounter = 0;
 
-    info_print("Rom:%s\nVariant:%d",
-               argv[1], cipollotto.chipVariant);
+    info_print("Rom:%s\nVariant:%d\nState size:%d",
+               argv[1], cipollotto.variant, sizeof(chip8));
     
     clock_gettime(CLOCK_MONOTONIC, &TnextRefresh);
-    while(cipollotto.running != CIPOLLOTTO_STATUS_HALTED){
+    while(cipollotto.runState != CIPOLLOTTO_STATUS_HALTED){
         /*
         Calcola tempo assoluto del prossimo frame.
         necessita clock_nanosleep(), che usa timespec.
@@ -79,7 +79,7 @@ int main(int argc, char** argv)
 
         ui_input(&cipollotto);
         
-        if(cipollotto.running == CIPOLLOTTO_STATUS_PAUSED){
+        if(cipollotto.runState == CIPOLLOTTO_STATUS_PAUSED){
             ui_refresh();
             clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TnextRefresh, NULL);
             continue;
@@ -93,8 +93,8 @@ int main(int argc, char** argv)
         extraInstr = !(extraInstr & 1L);
 
         //update timers
-        if(cipollotto.DT > 0){cipollotto.DT--;}
-        if(cipollotto.ST > 0){cipollotto.ST--;} //should emit sound
+        if(cipollotto.state.DT > 0){cipollotto.state.DT--;}
+        if(cipollotto.state.ST > 0){cipollotto.state.ST--;} //should emit sound
 
         if(cipollotto.drawFlag){
             renderFBtoUI(&cipollotto);
@@ -107,7 +107,7 @@ int main(int argc, char** argv)
         //wait untill next frame
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &TnextRefresh, NULL);
     }
-
+    
     memdump(&cipollotto, "RAM.bin");
     ui_deinit();
     return 0;

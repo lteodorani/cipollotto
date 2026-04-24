@@ -8,7 +8,7 @@ void ui_refresh(void);
 void ui_input(chip8* chip8_state);
 
 void renderFBtoUI(chip8* chip8_state);
-void stat_print(chip8* chip8_state); 
+void crash_screen(chip8* chip8_state); 
 void info_print(const char *formatted_msg, ...);
 
 

@@ -40,40 +40,38 @@ typedef enum{
     CIPOLLOTTO_VARIANT_SCHIP
 } chip8_variant;
 
-typedef struct{
-    uint64_t IPS;
-    uint64_t FPS;
-} chip8_options;
-
 
 
 typedef struct chip8{
-    //virtual machine metadata
-    chip8_variant chipVariant;
-    chip8_options chipOptions;
-
-    //state description
-    uint8_t  MEM[4096];   //Working RAM
-    uint8_t  FB[FB_SIZE]; //Framebuffer
-    uint16_t STACK[16];   //Stack
-
-    // TODO: convert to u8 opcodes.h
-        uint16_t V[16];
-        uint16_t I;           //V0...VF, I regs. V regs really should 8 but i store them in 16 bit container
-    
-        uint8_t  KP[16];      //Keypad
-    uint8_t  DT, ST, SP;  //Timers, stack pointer
-    uint16_t PC;          //Program counter
-
-    
-    // runtime configuration
-    chip8_error    errState;
-    bool           drawFlag;
-    bool           extendedMode;
-    chip8_status   running;
-
 
     void (*opExecute)(struct chip8* chip8_state);
+
+    struct {
+        uint32_t IPS;
+        uint32_t FPS;
+    } clock;
+
+    chip8_variant variant;
+    chip8_status  runState;
+    chip8_error   errState;
+    bool          drawFlag;
+    bool          extMode;   
+
+
+    struct {
+        //state description
+        uint8_t  MEM[4096];   //Working RAM
+        uint8_t  FB[FB_SIZE]; //Framebuffer
+        uint16_t STACK[16];   //Stack
+
+        // TODO: convert to u8 opcodes.h
+            uint16_t V[16];
+            uint16_t I;           //V0...VF, I regs.
+            uint8_t  KP[16];      //Keypad
+
+        uint16_t PC;          //Program counter
+        uint8_t  DT, ST, SP;  //Timers, stack pointer
+    } state;
     
 
 } chip8;
