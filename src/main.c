@@ -1,6 +1,7 @@
 #include "cipollotto.h"
 #include "ui.h"
-#include <stdint.h>
+#include "common.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
@@ -12,29 +13,10 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    FILE* fROM = fopen(argv[1], "rb");
-    if(fROM == NULL){
-        printf("Error occured opening %s\n", argv[1]);
-        return 1;
-    }
-
-    fseek(fROM, 0, SEEK_END);
-    long fsize = ftell(fROM);
-    fseek(fROM, 0, SEEK_SET);
-    if(fsize > (MEMORY_END - PROG_START_ADDR)){
-        printf("Provided ROM exceeds chip-8 memory limit of 4kB.\n");
-        return -2;
-    }
-
 
 
     chip8 cipollotto;
-    chip8Init(&cipollotto, CIPOLLOTTO_VARIANT_SCHIP);
-    size_t read = fread(cipollotto.state.MEM+PROG_START_ADDR, 1, fsize, fROM);
-    if(read != (size_t)fsize)
-        return -4;
-    fclose(fROM);
-
+    chip8Init(&cipollotto, CIPOLLOTTO_VARIANT_SCHIP, argv[1]);
 
     if(ui_init() != 0) return -1;
     ui_refresh();

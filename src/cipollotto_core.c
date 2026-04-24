@@ -1,18 +1,14 @@
-//TODO: Use uint16_t for intermediate results, not the register array itself.
+//TODO: Use u16 for intermediate results, not the register array itself.
 
 
 #include "cipollotto.h"
-#include "opcodes.h"
-#include <stdbool.h>
-#include <stdint.h>
+#include "cipollotto_opcodes.h"
+#include "common.h"
 #include <stdio.h>
 #include <string.h>
 
-#define MIN(a, b) (((a) <= (b)) ? (a) : (b))
-#define MAX(a, b) (((a) => (b)) ? (a) : (b))
 
-
-static const uint8_t small_font_data[FONT_SMALL_SIZE] = {
+static const u8 small_font_data[FONT_SMALL_SIZE] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -31,7 +27,7 @@ static const uint8_t small_font_data[FONT_SMALL_SIZE] = {
     0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 };
 
-static const uint8_t large_font_data[FONT_LARGE_SIZE] = {
+static const u8 large_font_data[FONT_LARGE_SIZE] = {
     0x3C, 0x7E, 0xE7, 0xC3, 0xC3, 0xC3, 0xC3, 0xE7, 0x7E, 0x3C, // big 0 
     0x18, 0x38, 0x58, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, // big 1
     0x3E, 0x7F, 0xC3, 0x06, 0x0C, 0x18, 0x30, 0x60, 0xFF, 0xFF, // big 2
@@ -62,14 +58,14 @@ void chip8Step(chip8* c8){
     //fetch opcode taking care of endianess. chip-8 is big endian,
     //but x86 is little endian
     
-    uint16_t opcode = (MEM[PC] << 8) | (MEM[PC+1]);
+    u16 opcode = (MEM[PC] << 8) | (MEM[PC+1]);
     PC+=2;
     if(PC < MEMORY_START || PC > MEMORY_END){
         c8->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
         c8->runState = CIPOLLOTTO_STATUS_HALTED;
     }
     //dispatch
-    uint16_t h   = (opcode & 0xF000) >> 12;
+    u16 h   = (opcode & 0xF000) >> 12;
 
     switch(h)
     {
@@ -103,14 +99,14 @@ void schipStep(chip8* c8){
     //fetch opcode taking care of endianess. chip-8 is big endian,
     //but x86 is little endian, requiring to read the two bytes of
     //the 16-bit opcodes separatedly
-    uint16_t opcode = (MEM[PC] << 8) | (MEM[PC+1]);
+    u16 opcode = (MEM[PC] << 8) | (MEM[PC+1]);
     PC+=2;
     if(PC < MEMORY_START || PC > MEMORY_END){
         c8->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
         c8->runState = CIPOLLOTTO_STATUS_HALTED;
     }
     //dispatch
-    uint16_t h   = (opcode & 0xF000) >> 12;
+    u16 h   = (opcode & 0xF000) >> 12;
 
     switch(h)
     {
@@ -139,9 +135,11 @@ void schipStep(chip8* c8){
 }
 
 //initialization
-void chip8Init(chip8* c8, chip8_variant variant){
+void chip8Init(chip8* c8, chip8_variant variant, const char* romFilename){
     
+
     memset(c8, 0, sizeof(chip8));
+
     PC = PROG_START_ADDR;
     SP = 0;
     
@@ -162,6 +160,24 @@ void chip8Init(chip8* c8, chip8_variant variant){
     c8->variant = variant;
     c8->errState = CIPOLLOTTO_OK;
     c8->runState = CIPOLLOTTO_STATUS_RUNNING;
+
+
+    FILE* fROM = fopen(romFilename, "rb");
+    if(fROM == NULL){
+        printf("Error occured opening %s\n", romFilename);
+        return;
+    }
+
+    fseek(fROM, 0, SEEK_END);
+    long fsize = ftell(fROM);
+    fseek(fROM, 0, SEEK_SET);
+    if(fsize > (MEMORY_END - PROG_START_ADDR)){
+        printf("Provided ROM exceeds chip-8 memory limit of 4kB.\n");
+        return;
+    }
+    fread(MEM+PROG_START_ADDR, 1, fsize, fROM);
+    fclose(fROM);
+
 }
 
 

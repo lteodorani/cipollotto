@@ -1,6 +1,6 @@
 #pragma once
-#include <stdint.h>
-#include <stdbool.h>
+
+#include "common.h"
 
 #define PROG_START_ADDR   0x200
 #define MEMORY_END        0xFFF
@@ -47,8 +47,8 @@ typedef struct chip8{
     void (*opExecute)(struct chip8* chip8_state);
 
     struct {
-        uint32_t IPS;
-        uint32_t FPS;
+        u32 IPS;
+        u32 FPS;
     } clock;
 
     chip8_variant variant;
@@ -60,21 +60,21 @@ typedef struct chip8{
 
     struct {
         //state description
-        uint8_t  MEM[4096];   //Working RAM
-        uint8_t  FB[FB_SIZE]; //Framebuffer
-        uint16_t STACK[16];   //Stack
+        u8  MEM[4096];   //Working RAM
+        u8  FB[FB_SIZE]; //Framebuffer
+        u16 STACK[16];   //Stack
 
         // TODO: convert to u8 opcodes.h
-            uint16_t V[16];
-            uint16_t I;           //V0...VF, I regs.
-            uint8_t  KP[16];      //Keypad
+            u16 V[16];
+            u16 I;           //V0...VF, I regs.
+            u8  KP[16];      //Keypad
 
-        uint16_t PC;          //Program counter
-        uint8_t  DT, ST, SP;  //Timers, stack pointer
+        u16 PC;          //Program counter
+        u8  DT, ST, SP;  //Timers, stack pointer
     } state;
     
 
 } chip8;
 
 void memdump(chip8* chip8_state, const char *filename);
-void chip8Init(chip8* chip8_state, chip8_variant variant);
+void chip8Init(chip8* chip8_state, chip8_variant variant, const char* romFilename);

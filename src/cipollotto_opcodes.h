@@ -1,15 +1,13 @@
-//private header. This should ever only be
-//included by cipollotto.c
+// Internal Header
+// Should only be included by cipollotto_core.c
 
 #pragma once
-#include <stdint.h>
+#include "cipollotto.h"
+#include "common.h"
+
 #include <stdio.h>
 #include <string.h>
-#include "cipollotto.h"
 
-
-#define MIN(a, b) (((a) <= (b)) ? (a) : (b))
-#define MAX(a, b) (((a) => (b)) ? (a) : (b))
 
 #define MEM      (c8->state.MEM)
 #define STACK    (c8->state.STACK)
@@ -22,12 +20,12 @@
 #define SP       (c8->state.SP)
 #define KP       (c8->state.KP)
 
-inline static uint32_t LCG_rand(void){
+inline static u32 LCG_rand(void){
     //linear congruent generator (LCG)
     //a and b taken from 'Numerical Recipes'
-    const  uint32_t a = 1664525;   
-    const  uint32_t b = 1013904223;
-    static uint32_t X = 1;
+    const  u32 a = 1664525;   
+    const  u32 b = 1013904223;
+    static u32 X = 1;
     X = a * X + b; // implicit mod 2^32 via overflow 
     return X;
 }
@@ -38,44 +36,44 @@ inline static uint32_t LCG_rand(void){
 // https://graphics.stanford.edu/~seander/bithacks.html#InterleaveBMN
 //
 // Example:
-// the uint8_t 0b10110110 becomes uint16_t 0b1100111100111100
-inline static uint16_t dupeBitsInPlace16(uint8_t n){
-    uint16_t x = n;
+// the u8 0b10110110 becomes u16 0b1100111100111100
+inline static u16 dupeBitsInPlace16(u8 n){
+    u16 x = n;
     x = (x | (x << 4)) & 0x0F0F0F0F;
     x = (x | (x << 2)) & 0x33333333;
     x = (x | (x << 1)) & 0x55555555;
     return x | (x << 1);
 }
 
-inline static uint32_t dupeBitsInPlace32(uint8_t n){
-    uint32_t x = n;
+inline static u32 dupeBitsInPlace32(u8 n){
+    u32 x = n;
     x = (x | (x << 4)) & 0x0F0F0F0F;
     x = (x | (x << 2)) & 0x33333333;
     x = (x | (x << 1)) & 0x55555555;
     return x | (x << 1);
 }
 
-inline static uint8_t drawBytes(chip8* c8, uint16_t row_idx, uint16_t col_idx, uint32_t pixel_data){
+inline static u8 drawBytes(chip8* c8, u16 row_idx, u16 col_idx, u32 pixel_data){
     
     // if n is a power of two, and x unsigned
     // x % n is the same of x & (n-1), but cheaper.
     // this is done automatically by gcc even in -O0
     // However could be exploited for a branchless
     // screen wrap behaviour quirk selector like this:
-    //uint16_t MOD_mask = (BYTES_PER_ROW - 1) * (!wrap) + wrap;
+    //u16 MOD_mask = (BYTES_PER_ROW - 1) * (!wrap) + wrap;
     
-    uint16_t indices[3] = {
-        (uint16_t)(row_idx + col_idx),
-        (uint16_t)(row_idx + ((col_idx + 1) % BYTES_PER_ROW)),
-        (uint16_t)(row_idx + ((col_idx + 2) % BYTES_PER_ROW))
+    u16 indices[3] = {
+        (u16)(row_idx + col_idx),
+        (u16)(row_idx + ((col_idx + 1) % BYTES_PER_ROW)),
+        (u16)(row_idx + ((col_idx + 2) % BYTES_PER_ROW))
     };
                                     //left                center              right
-    uint8_t oldBytes[3] = {FB[indices[0]], FB[indices[1]], FB[indices[2]]};
+    u8 oldBytes[3] = {FB[indices[0]], FB[indices[1]], FB[indices[2]]};
 
-    uint8_t newBytes[3] = {
-        (uint8_t)(pixel_data >> 16),
-        (uint8_t)(pixel_data >> 8),
-        (uint8_t)(pixel_data)
+    u8 newBytes[3] = {
+        (u8)(pixel_data >> 16),
+        (u8)(pixel_data >> 8),
+        (u8)(pixel_data)
     };
 
     // XOR sprite bits into framebuffer
@@ -84,7 +82,7 @@ inline static uint8_t drawBytes(chip8* c8, uint16_t row_idx, uint16_t col_idx, u
     FB[indices[2]] ^= newBytes[2];
 
     // Detect collision
-    uint8_t collisionHappened = (
+    u8 collisionHappened = (
         (oldBytes[0] & newBytes[0]) | 
         (oldBytes[1] & newBytes[1]) |
         (oldBytes[2] & newBytes[2])
@@ -93,33 +91,33 @@ inline static uint8_t drawBytes(chip8* c8, uint16_t row_idx, uint16_t col_idx, u
     return collisionHappened;
 }
 
-inline static uint8_t drawDoubleBytes(chip8* c8, uint16_t row_idx, uint16_t col_idx, uint32_t pixel_data){
+inline static u8 drawDoubleBytes(chip8* c8, u16 row_idx, u16 col_idx, u32 pixel_data){
     
     // if n is a power of two, and x unsigned
     // x % n is the same of x & (n-1), but cheaper.
     // this is done automatically by gcc even in -O0
     // However could be exploited for a branchless
     // screen wrap behaviour quirk selector like this:
-    //uint16_t MOD_mask = (BYTES_PER_ROW - 1) * (!wrap) + wrap;
+    //u16 MOD_mask = (BYTES_PER_ROW - 1) * (!wrap) + wrap;
     
-    uint16_t indices[6] = {
+    u16 indices[6] = {
         //top row of pixels
-        (uint16_t)(row_idx + col_idx),
-        (uint16_t)(row_idx + ((col_idx + 1) % BYTES_PER_ROW)),
-        (uint16_t)(row_idx + ((col_idx + 2) % BYTES_PER_ROW)),
+        (u16)(row_idx + col_idx),
+        (u16)(row_idx + ((col_idx + 1) % BYTES_PER_ROW)),
+        (u16)(row_idx + ((col_idx + 2) % BYTES_PER_ROW)),
 
         //bottom row of pixels
-        (uint16_t)(row_idx + BYTES_PER_ROW + col_idx),
-        (uint16_t)(row_idx + BYTES_PER_ROW + ((col_idx + 1) % BYTES_PER_ROW)),
-        (uint16_t)(row_idx + BYTES_PER_ROW + ((col_idx + 2) % BYTES_PER_ROW)),
+        (u16)(row_idx + BYTES_PER_ROW + col_idx),
+        (u16)(row_idx + BYTES_PER_ROW + ((col_idx + 1) % BYTES_PER_ROW)),
+        (u16)(row_idx + BYTES_PER_ROW + ((col_idx + 2) % BYTES_PER_ROW)),
     };
                                     //left                center              right
-    uint8_t oldBytes[3] = {FB[indices[0]], FB[indices[1]], FB[indices[2]]};
+    u8 oldBytes[3] = {FB[indices[0]], FB[indices[1]], FB[indices[2]]};
 
-    uint8_t newBytes[3] = {
-        (uint8_t)(pixel_data >> 16),
-        (uint8_t)(pixel_data >> 8),
-        (uint8_t)(pixel_data)
+    u8 newBytes[3] = {
+        (u8)(pixel_data >> 16),
+        (u8)(pixel_data >> 8),
+        (u8)(pixel_data)
     };
 
     // XOR top sprite bits into framebuffer,
@@ -133,7 +131,7 @@ inline static uint8_t drawDoubleBytes(chip8* c8, uint16_t row_idx, uint16_t col_
 
     // Detect collision only in the top
     // row pixels. Bott are just a copy
-    uint8_t collisionHappened = (
+    u8 collisionHappened = (
         (oldBytes[0] & newBytes[0]) | 
         (oldBytes[1] & newBytes[1]) |
         (oldBytes[2] & newBytes[2])
@@ -142,26 +140,26 @@ inline static uint8_t drawDoubleBytes(chip8* c8, uint16_t row_idx, uint16_t col_
     return collisionHappened;
 }
 
-inline static uint16_t drw_hires(chip8* c8, uint16_t originX, uint16_t originY, uint16_t n){
-    uint16_t collidedRowsN = 0;
-    uint16_t drawnRows     = 0;
-    uint16_t rowN = (n == 0) ? 16 : n; // toggle between dxy0 and dxyn
+inline static u16 drw_hires(chip8* c8, u16 originX, u16 originY, u16 n){
+    u16 collidedRowsN = 0;
+    u16 drawnRows     = 0;
+    u16 rowN = (n == 0) ? 16 : n; // toggle between dxy0 and dxyn
 
-    uint16_t x_idx   = originX / 8; // x position aligned to 8bit boundaries
-    uint16_t offsetX = originX % 8; // pixel offset inside an 8 bit boundary
+    u16 x_idx   = originX / 8; // x position aligned to 8bit boundaries
+    u16 offsetX = originX % 8; // pixel offset inside an 8 bit boundary
 
     // right edge clipping mask
-    uint16_t visBitsN = MIN(originX + 16, SCREEN_WIDTH) - originX;
-    uint32_t edgeMask  = (0x00FFFFFFu << (16 - visBitsN));
+    u16 visBitsN = MIN(originX + 16, SCREEN_WIDTH) - originX;
+    u32 edgeMask  = (0x00FFFFFFu << (16 - visBitsN));
 
     // sprite bits initialized to high-low pattern to help diagnose
     // possible errors in the drawing code logic.
-    uint32_t sprite_bits = 0x55555555u;
+    u32 sprite_bits = 0x55555555u;
 
-    for (uint16_t row = 0; row < rowN; ++row) {
+    for (u16 row = 0; row < rowN; ++row) {
 
         // --- Y clipping ---
-        uint16_t offsetY = originY + row;
+        u16 offsetY = originY + row;
         if (offsetY >= SCREEN_HEIGHT) break;
         
         // --- Fetch sprite row bits, then apply right-edge screen clipping ---
@@ -169,18 +167,18 @@ inline static uint16_t drw_hires(chip8* c8, uint16_t originX, uint16_t originY, 
         // aligned to second least significant byte from the right (bits 16-8)
         if(n!=0){
             // dxyn branch
-            uint32_t sprite_row =
-                ((uint32_t)MEM[(I + row) & 0x0FFF] << 8) & edgeMask;
+            u32 sprite_row =
+                ((u32)MEM[(I + row) & 0x0FFF] << 8) & edgeMask;
 
             sprite_bits = sprite_row << (8 - offsetX);
         }
         else {
             // dxy0 branch
-            uint8_t a = MEM[(I + 2 * row    ) & 0x0FFF];
-            uint8_t b = MEM[(I + 2 * row + 1) & 0x0FFF];
+            u8 a = MEM[(I + 2 * row    ) & 0x0FFF];
+            u8 b = MEM[(I + 2 * row + 1) & 0x0FFF];
 
-            uint32_t sprite_row =
-                (((uint32_t)a << 8) | (uint32_t)b) & edgeMask;
+            u32 sprite_row =
+                (((u32)a << 8) | (u32)b) & edgeMask;
 
             sprite_bits = sprite_row << (8 - offsetX);
         }
@@ -196,31 +194,31 @@ inline static uint16_t drw_hires(chip8* c8, uint16_t originX, uint16_t originY, 
 
     // hires mode on the calculator counts as collisions 
     // the numbers of rows clipped at the bottom border too
-    uint16_t collisions = collidedRowsN + (rowN - drawnRows);
+    u16 collisions = collidedRowsN + (rowN - drawnRows);
 
     //printf("%d\n", collisions);
     return collisions;
 
 }
 
-inline static uint16_t drw_lores(chip8* c8, uint16_t originX, uint16_t originY, uint16_t n){
-    uint16_t collidedRowsN = 0;
-    uint16_t drawnRows     = 0;
+inline static u16 drw_lores(chip8* c8, u16 originX, u16 originY, u16 n){
+    u16 collidedRowsN = 0;
+    u16 drawnRows     = 0;
 
-    uint16_t x_idx   = originX / 8; // x position aligned to 8bit boundaries
-    uint16_t offsetX = originX % 8; // pixel offset inside an 8 bit boundary
+    u16 x_idx   = originX / 8; // x position aligned to 8bit boundaries
+    u16 offsetX = originX % 8; // pixel offset inside an 8 bit boundary
 
     // right edge clipping mask
-    uint16_t visBitsN = MIN(originX + 16, SCREEN_WIDTH) - originX;
-    uint32_t edgeMask  = (0x00FFFFFFu << (16 - visBitsN));
+    u16 visBitsN = MIN(originX + 16, SCREEN_WIDTH) - originX;
+    u32 edgeMask  = (0x00FFFFFFu << (16 - visBitsN));
 
-    for (uint16_t row = 0; row < n; ++row) {
+    for (u16 row = 0; row < n; ++row) {
 
         // --- Y clipping ---
-        uint16_t offsetY = originY + 2*row;
+        u16 offsetY = originY + 2*row;
         if (offsetY >= SCREEN_HEIGHT) break;
         
-        uint32_t sprite_bits = (dupeBitsInPlace32(MEM[(I + row) & 0x0FFF]) & edgeMask)
+        u32 sprite_bits = (dupeBitsInPlace32(MEM[(I + row) & 0x0FFF]) & edgeMask)
                                  << (8 - offsetX);
 
         // blit top and bottom row pixels on screen
@@ -238,24 +236,24 @@ inline static uint16_t drw_lores(chip8* c8, uint16_t originX, uint16_t originY, 
 }
 
 
-static inline void op_drw_schip(chip8* c8, uint16_t opcode){
-    uint16_t n   =  opcode & 0x000F;
-    uint16_t y   = (opcode & 0x00F0) >> 4;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
+static inline void op_drw_schip(chip8* c8, u16 opcode){
+    u16 n   =  opcode & 0x000F;
+    u16 y   = (opcode & 0x00F0) >> 4;
+    u16 x   = (opcode & 0x0F00) >> 8;
 
-    uint16_t collision = 0;
+    u16 collision = 0;
 
     // hires dxyn / dxy0
     if(c8->extMode){
-        uint16_t originX = V[x] % SCREEN_WIDTH;
-        uint16_t originY = V[y] % SCREEN_HEIGHT;
+        u16 originX = V[x] % SCREEN_WIDTH;
+        u16 originY = V[y] % SCREEN_HEIGHT;
         collision = drw_hires(c8, originX, originY, n);
     }
 
     // lores dxyn
     else {
-        uint16_t originX = 2*V[x] % SCREEN_WIDTH;      // scaled and wrapped start X
-        uint16_t originY = 2*V[y] % SCREEN_HEIGHT;     // scaled wrapped start Y
+        u16 originX = 2*V[x] % SCREEN_WIDTH;      // scaled and wrapped start X
+        u16 originY = 2*V[y] % SCREEN_HEIGHT;     // scaled wrapped start Y
         collision = drw_lores(c8, originX, originY, n);
     }
 
@@ -263,15 +261,15 @@ static inline void op_drw_schip(chip8* c8, uint16_t opcode){
     c8->drawFlag = true;
 }
 
-inline static void op_drw(chip8* c8, uint16_t opcode){
-    uint16_t n   =  opcode & 0x000F;
-    uint16_t y   = (opcode & 0x00F0) >> 4;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
+inline static void op_drw(chip8* c8, u16 opcode){
+    u16 n   =  opcode & 0x000F;
+    u16 y   = (opcode & 0x00F0) >> 4;
+    u16 x   = (opcode & 0x0F00) >> 8;
 
-    uint16_t collision = 0;
+    u16 collision = 0;
 
-    uint16_t originX = 2*V[x] % SCREEN_WIDTH;      // scaled and wrapped start X
-    uint16_t originY = 2*V[y] % SCREEN_HEIGHT;     // scaled wrapped start Y
+    u16 originX = 2*V[x] % SCREEN_WIDTH;      // scaled and wrapped start X
+    u16 originY = 2*V[y] % SCREEN_HEIGHT;     // scaled wrapped start Y
     collision = drw_lores(c8, originX, originY, n);
 
 
@@ -279,8 +277,8 @@ inline static void op_drw(chip8* c8, uint16_t opcode){
     c8->drawFlag = true;
 }
 
-inline static void handle_0nnn(chip8* c8, uint16_t opcode){
-    uint16_t nnn =  opcode & 0x0FFF;
+inline static void handle_0nnn(chip8* c8, u16 opcode){
+    u16 nnn =  opcode & 0x0FFF;
     switch(nnn) {
         case 0x0E0:
             memset(FB, 0x00, sizeof(FB));
@@ -305,14 +303,14 @@ inline static void handle_0nnn(chip8* c8, uint16_t opcode){
 
 //jump to nnn
 //jump to nnn + V0
-inline static void op_jp(chip8* c8, uint16_t opcode){
-    uint16_t nnn =  opcode & 0x0FFF;
+inline static void op_jp(chip8* c8, u16 opcode){
+    u16 nnn =  opcode & 0x0FFF;
     PC = nnn;
 }
 
 
-inline static void op_jp_v0(chip8* c8, uint16_t opcode){
-    uint16_t nnn =  opcode & 0x0FFF;
+inline static void op_jp_v0(chip8* c8, u16 opcode){
+    u16 nnn =  opcode & 0x0FFF;
     PC = nnn + V[0];
 }
 
@@ -322,8 +320,8 @@ inline static void op_jp_v0(chip8* c8, uint16_t opcode){
 2) put current PC at the top of the stack
 3) set PC to nnn.
 */
-inline static void op_call(chip8* c8, uint16_t opcode){
-    uint16_t nnn =  opcode & 0x0FFF;
+inline static void op_call(chip8* c8, u16 opcode){
+    u16 nnn =  opcode & 0x0FFF;
     if(SP < STACK_SIZE_UINT16 - 1){
         STACK[SP] = PC;
         SP++;
@@ -335,65 +333,65 @@ inline static void op_call(chip8* c8, uint16_t opcode){
 }
 
 //Skips the next instruction if VX equals nn 
-inline static void op_se_byte(chip8* c8, uint16_t opcode){
-    uint16_t nn  =  opcode & 0x00FF;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
+inline static void op_se_byte(chip8* c8, u16 opcode){
+    u16 nn  =  opcode & 0x00FF;
+    u16 x   = (opcode & 0x0F00) >> 8;
     PC += (V[x] == nn) * 2;
 }
 
 //Skips the next instruction if VX not equal nn
-inline static void op_sne_byte(chip8* c8, uint16_t opcode){
-    uint16_t nn  =  opcode & 0x00FF;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
+inline static void op_sne_byte(chip8* c8, u16 opcode){
+    u16 nn  =  opcode & 0x00FF;
+    u16 x   = (opcode & 0x0F00) >> 8;
     PC += (V[x] != nn) * 2;
 }
 
 //Skips the next instruction if VX equals VY
-inline static void op_se_reg(chip8* c8, uint16_t opcode){
-    uint16_t x   = (opcode & 0x0F00) >> 8;
-    uint16_t y   = (opcode & 0x00F0) >> 4;
+inline static void op_se_reg(chip8* c8, u16 opcode){
+    u16 x   = (opcode & 0x0F00) >> 8;
+    u16 y   = (opcode & 0x00F0) >> 4;
     PC += (V[x] == V[y]) * 2;
 }
 
 //Skips the next instruction if VX not equals VY
-inline static void op_sne_reg(chip8* c8, uint16_t opcode){
-    uint16_t x   = (opcode & 0x0F00) >> 8;
-    uint16_t y   = (opcode & 0x00F0) >> 4;
+inline static void op_sne_reg(chip8* c8, u16 opcode){
+    u16 x   = (opcode & 0x0F00) >> 8;
+    u16 y   = (opcode & 0x00F0) >> 4;
     PC += (V[x] != V[y]) * 2;
 }
 
 //Set Vx equal to nn
-inline static void op_ld_byte(chip8* c8, uint16_t opcode){
-    uint16_t nn  =  opcode & 0x00FF;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
+inline static void op_ld_byte(chip8* c8, u16 opcode){
+    u16 nn  =  opcode & 0x00FF;
+    u16 x   = (opcode & 0x0F00) >> 8;
     V[x] = nn & 0x00FF;
 }
 
 //Set I equal to address of value nnn
-inline static void op_ld_I(chip8* c8, uint16_t opcode){
-    uint16_t nnn = opcode & 0x0FFF;
+inline static void op_ld_I(chip8* c8, u16 opcode){
+    u16 nnn = opcode & 0x0FFF;
     I = nnn;
 }
 
 //Set Vx = bitwise and between a random number and nn
-inline static void op_rnd(chip8* c8, uint16_t opcode){
-    uint16_t nn  =  opcode & 0x00FF;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
-    V[x] = (uint16_t)(LCG_rand()>>16) & nn;
+inline static void op_rnd(chip8* c8, u16 opcode){
+    u16 nn  =  opcode & 0x00FF;
+    u16 x   = (opcode & 0x0F00) >> 8;
+    V[x] = (u16)(LCG_rand()>>16) & nn;
 }
 
 //Add nn to Vn (carry flag is not changed).
-inline static void op_add_byte(chip8* c8, uint16_t opcode){
-    uint16_t nn  =  opcode & 0x00FF;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
+inline static void op_add_byte(chip8* c8, u16 opcode){
+    u16 nn  =  opcode & 0x00FF;
+    u16 x   = (opcode & 0x0F00) >> 8;
     V[x] = (V[x] + nn) & 0x00FF;
 }
 
 //ALU instructions.
-inline static void handle_8xyn(chip8* c8, uint16_t opcode){
-    uint16_t n   =  opcode & 0x000F;
-    uint16_t y   = (opcode & 0x00F0) >> 4;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
+inline static void handle_8xyn(chip8* c8, u16 opcode){
+    u16 n   =  opcode & 0x000F;
+    u16 y   = (opcode & 0x00F0) >> 4;
+    u16 x   = (opcode & 0x0F00) >> 8;
     switch (n) {
         case 0x0: {V[x] = V[y]; break;} //Sets Vx to the value of Vy.
         case 0x1:
@@ -412,35 +410,35 @@ inline static void handle_8xyn(chip8* c8, uint16_t opcode){
             break;
 
         case 0x4: {
-            uint16_t sum16 = V[x] + V[y];
+            u16 sum16 = V[x] + V[y];
             V[ x ] = sum16 & 0x00FF;
             V[0xF] = sum16 >> 8;
             break;
         }
 
         case 0x5:{
-            uint16_t sub16 = V[x] - V[y];
+            u16 sub16 = V[x] - V[y];
             V[ x ] = sub16 & 0x00FF;
             V[0xF] = (~(sub16 >> 8) & 1);
             break;
         }
 
         case 0x6:{
-            uint16_t spill = V[y] &  1;
+            u16 spill = V[y] &  1;
             V[ x ] = V[y] >> 1;
             V[0xF] = spill;
             break;
         }
 
         case 0x7:{
-            uint16_t sub16 = V[y] - V[x];
+            u16 sub16 = V[y] - V[x];
             V[ x ] = sub16 & 0x00FF;
             V[0xF] = (~(sub16 >> 8) & 1);
             break;
         }
 
         case 0xE:{
-            uint16_t spill = (V[y] & 0x0080) >> 7;
+            u16 spill = (V[y] & 0x0080) >> 7;
             V[ x ] = (V[y] << 1) & 0x00FF;
             V[0xF] = spill;
             break;
@@ -449,9 +447,9 @@ inline static void handle_8xyn(chip8* c8, uint16_t opcode){
 }
 
 
-inline static void handle_Exnn(chip8* c8, uint16_t opcode){
-    uint16_t nn  =  opcode & 0x00FF;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
+inline static void handle_Exnn(chip8* c8, u16 opcode){
+    u16 nn  =  opcode & 0x00FF;
+    u16 x   = (opcode & 0x0F00) >> 8;
     switch(nn){
         case 0x9E:
             if(KP[V[x & 0xF]])
@@ -466,12 +464,12 @@ inline static void handle_Exnn(chip8* c8, uint16_t opcode){
 }
 
 
-inline static void handle_Fxnn(chip8* c8, uint16_t opcode){
-    uint16_t nn  =  opcode & 0x00FF;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
+inline static void handle_Fxnn(chip8* c8, u16 opcode){
+    u16 nn  =  opcode & 0x00FF;
+    u16 x   = (opcode & 0x0F00) >> 8;
     switch (nn) {
         case 0x07:
-            V[x] = (uint16_t)DT;
+            V[x] = (u16)DT;
             break;
 
 
@@ -480,7 +478,7 @@ inline static void handle_Fxnn(chip8* c8, uint16_t opcode){
             for(int i=0; i<16; i++){
                 if(KP[i]){
                     key_pressed = true;
-                    V[x] = (uint16_t)i;
+                    V[x] = (u16)i;
                     break;
                 }
             }
@@ -490,10 +488,10 @@ inline static void handle_Fxnn(chip8* c8, uint16_t opcode){
 
 
         case 0x15:
-            DT = (uint8_t)V[x];
+            DT = (u8)V[x];
             break;
         case 0x18:
-            ST = (uint8_t)V[x];
+            ST = (u8)V[x];
             break;
         case 0x1E:
             I += V[x] & 0xFF;
@@ -515,8 +513,8 @@ inline static void handle_Fxnn(chip8* c8, uint16_t opcode){
             break;
         case 0x55:
             if(I <= MEMORY_END - x){
-                for(uint16_t j=0; j<=x; ++j)
-                    MEM[I+j] = (uint8_t)(V[j]);
+                for(u16 j=0; j<=x; ++j)
+                    MEM[I+j] = (u8)(V[j]);
 
                 I += x + 1;
             }
@@ -527,7 +525,7 @@ inline static void handle_Fxnn(chip8* c8, uint16_t opcode){
             break;
         case 0x65:
             if(I <= MEMORY_END - x){
-                for(uint16_t j=0; j<=x; ++j)
+                for(u16 j=0; j<=x; ++j)
                     V[j] = MEM[I+j];
 
                 I += x + 1;
@@ -574,10 +572,10 @@ inline static void handle_Fxnn(chip8* c8, uint16_t opcode){
 +----+---------------------------------------------+----------------------+
 */
 
-inline static void handle_8xyn_schip(chip8* c8, uint16_t opcode){
-    uint16_t n   =  opcode & 0x000F;
-    uint16_t y   = (opcode & 0x00F0) >> 4;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
+inline static void handle_8xyn_schip(chip8* c8, u16 opcode){
+    u16 n   =  opcode & 0x000F;
+    u16 y   = (opcode & 0x00F0) >> 4;
+    u16 x   = (opcode & 0x0F00) >> 8;
     switch (n) {
         case 0x0: {V[x] = V[y]; break;} //Sets Vx to the value of Vy.
         case 0x1:
@@ -593,35 +591,35 @@ inline static void handle_8xyn_schip(chip8* c8, uint16_t opcode){
             break;
 
         case 0x4: {
-            uint16_t sum16 = V[x] + V[y];
+            u16 sum16 = V[x] + V[y];
             V[ x ] = sum16 & 0x00FF;
             V[0xF] = sum16 >> 8;
             break;
         }
 
         case 0x5:{
-            uint16_t sub16 = V[x] - V[y];
+            u16 sub16 = V[x] - V[y];
             V[ x ] = sub16 & 0x00FF;
             V[0xF] = (~(sub16 >> 8) & 1);
             break;
         }
 
         case 0x6:{
-            uint16_t spill = V[x] &  1;
+            u16 spill = V[x] &  1;
             V[ x ] >>= 1;
             V[0xF] = spill;
             break;
         }
 
         case 0x7:{
-            uint16_t sub16 = V[y] - V[x];
+            u16 sub16 = V[y] - V[x];
             V[ x ] = sub16 & 0x00FF;
             V[0xF] = (~(sub16 >> 8) & 1);
             break;
         }
 
         case 0xE:{
-            uint16_t spill = (V[x] & 0x0080) >> 7;
+            u16 spill = (V[x] & 0x0080) >> 7;
             V[ x ] = (V[x] << 1) & 0x00FF;
             V[0xF] = spill;
             break;
@@ -632,9 +630,9 @@ inline static void handle_8xyn_schip(chip8* c8, uint16_t opcode){
 }
 
 
-inline static void scrolln(chip8* c8, uint16_t n){
+inline static void scrolln(chip8* c8, u16 n){
     //clear first n-1 rows, then copy last n rows
-    uint16_t deltaBytes = n * BYTES_PER_ROW;
+    u16 deltaBytes = n * BYTES_PER_ROW;
     memmove(FB + deltaBytes, FB, FB_SIZE-deltaBytes);
     memset(FB, 0x0, deltaBytes);
     c8->drawFlag = true;
@@ -642,10 +640,10 @@ inline static void scrolln(chip8* c8, uint16_t n){
 
 //scrolls horizontally right 4 pixels
 inline static void scrollr(chip8* c8){
-    uint8_t rowBytes[BYTES_PER_ROW];
+    u8 rowBytes[BYTES_PER_ROW];
     for(int r=0; r<SCREEN_HEIGHT; r++){
         memcpy(rowBytes, FB+r*BYTES_PER_ROW, BYTES_PER_ROW);
-        uint8_t lsbPrev = 0x00, 
+        u8 lsbPrev = 0x00, 
                 lsbCurr = 0x00;
         for(int b=0; b<BYTES_PER_ROW; b++){
             lsbCurr = rowBytes[b] & 0x0Fu;
@@ -659,10 +657,10 @@ inline static void scrollr(chip8* c8){
 }
 
 inline static void scrolll(chip8* c8){
-    uint8_t rowBytes[BYTES_PER_ROW] = {0};
+    u8 rowBytes[BYTES_PER_ROW] = {0};
     for(int r=0; r<SCREEN_HEIGHT; r++){
         memcpy(rowBytes, FB+r*BYTES_PER_ROW, BYTES_PER_ROW);
-        uint8_t msbPrev = 0x00, 
+        u8 msbPrev = 0x00, 
                 msbCurr = 0x00;
         for(int b=BYTES_PER_ROW-1; b>=0; b--){
             msbCurr = rowBytes[b] & 0xF0u  ;
@@ -675,8 +673,8 @@ inline static void scrolll(chip8* c8){
     c8->drawFlag = true;
 }
 
-inline static void handle_0nnn_schip(chip8* c8, uint16_t opcode){
-    uint16_t nnn = opcode & 0x0FFF;
+inline static void handle_0nnn_schip(chip8* c8, u16 opcode){
+    u16 nnn = opcode & 0x0FFF;
     switch(nnn) {
         case 0x0E0:
             memset(FB, 0x00, sizeof(FB));
@@ -723,9 +721,9 @@ inline static void handle_0nnn_schip(chip8* c8, uint16_t opcode){
     }
 }
 
-inline static void handle_00_schip(chip8* c8, uint16_t opcode){    
-    uint16_t __n =  opcode & 0x000F;
-    uint16_t _n_ =  opcode & 0x00F0;
+inline static void handle_00_schip(chip8* c8, u16 opcode){    
+    u16 __n =  opcode & 0x000F;
+    u16 _n_ =  opcode & 0x00F0;
 
     switch(_n_){
         case 0x0C0:
@@ -748,20 +746,20 @@ inline static void handle_00_schip(chip8* c8, uint16_t opcode){
 }
 
 
-inline static void op_jp_vx(chip8* c8, uint16_t opcode){
-    uint16_t x   =  (opcode & 0x0F00) >> 8; 
-    uint16_t nnn =  (opcode & 0x0FFF);
+inline static void op_jp_vx(chip8* c8, u16 opcode){
+    u16 x   =  (opcode & 0x0F00) >> 8; 
+    u16 nnn =  (opcode & 0x0FFF);
     PC = nnn + V[x];
 }
 
 
-inline static void handle_Fxnn_schip(chip8* c8, uint16_t opcode){
-    uint16_t nn  =  opcode & 0x00FF;
-    uint16_t x   = (opcode & 0x0F00) >> 8;
-    static uint16_t userFlags[8]; //persistent memory for FX75/85
+inline static void handle_Fxnn_schip(chip8* c8, u16 opcode){
+    u16 nn  =  opcode & 0x00FF;
+    u16 x   = (opcode & 0x0F00) >> 8;
+    static u16 userFlags[8]; //persistent memory for FX75/85
     switch (nn) {
         case 0x07:
-            V[x] = (uint16_t)DT;
+            V[x] = (u16)DT;
             break;
 
 
@@ -770,7 +768,7 @@ inline static void handle_Fxnn_schip(chip8* c8, uint16_t opcode){
             for(int i=0; i<16; i++){
                 if(KP[i]){
                     key_pressed = true;
-                    V[x] = (uint16_t)i;
+                    V[x] = (u16)i;
                     break;
                 }
             }
@@ -780,10 +778,10 @@ inline static void handle_Fxnn_schip(chip8* c8, uint16_t opcode){
 
 
         case 0x15:
-            DT = (uint8_t)V[x];
+            DT = (u8)V[x];
             break;
         case 0x18:
-            ST = (uint8_t)V[x];
+            ST = (u8)V[x];
             break;
         case 0x1E:
             I += V[x] & 0xFF;
@@ -821,8 +819,8 @@ inline static void handle_Fxnn_schip(chip8* c8, uint16_t opcode){
         // versions that have their own quirks ('modern schip' in the quirks test)
         case 0x55:
             if(I <= MEMORY_END - x){
-                for(uint16_t j=0; j<=x; ++j)
-                    MEM[I+j] = (uint8_t)(V[j]);
+                for(u16 j=0; j<=x; ++j)
+                    MEM[I+j] = (u8)(V[j]);
                 
                 //I += x;
             }
@@ -833,7 +831,7 @@ inline static void handle_Fxnn_schip(chip8* c8, uint16_t opcode){
             break;
         case 0x65:
             if(I <= MEMORY_END - x){
-                for(uint16_t j=0; j<=x; ++j)
+                for(u16 j=0; j<=x; ++j)
                     V[j] = MEM[I+j];
 
                 //I += x;
@@ -845,14 +843,14 @@ inline static void handle_Fxnn_schip(chip8* c8, uint16_t opcode){
             break;
             
         case 0x75:{
-            uint16_t ncpy = MIN(x, 7);
+            u16 ncpy = MIN(x, 7);
             for(int i=0; i<=ncpy; i++)
                 userFlags[i] = V[i];
 
             break;
         }
         case 0x85:{
-            uint16_t ncpy = MIN(x, 7);
+            u16 ncpy = MIN(x, 7);
             for(int i=0; i<=ncpy; i++)
                 V[i] = userFlags[i];
 

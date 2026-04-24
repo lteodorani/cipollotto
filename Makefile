@@ -18,8 +18,8 @@ RELEASE_CFLAGS=$(C_VERSION) -O3 -Wall -Wextra -lSDL3
 
 #source files
 SRC=$(SRC_DIR)/main.c \
-    $(SRC_DIR)/ui_SDL.c \
-    $(SRC_DIR)/cipollotto.c
+    $(SRC_DIR)/ui_sdlbackend.c \
+    $(SRC_DIR)/cipollotto_core.c
 
 
 #make targets

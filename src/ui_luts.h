@@ -1,19 +1,43 @@
-#include <stdint.h>
+// Private Header
+// Should only be user by ui_sdlbackend.c
 
-static const uint32_t white = 0xFFFFFFFF;
-static const uint32_t black = 0x000000FF;
-static const uint32_t green = 0x00FF00FF;
-static const uint32_t lgray = 0x1C1C1CFF;
-static const uint32_t colo1 = 0x996600ff;
-static const uint32_t colo2 = 0xFFCC00ff;
-static const uint32_t colo3 = 0xFF6600ff;
-static const uint32_t colo4 = 0x662200ff;
+#include "common.h"
+
+static const u32 white = 0xFFFFFFFF;
+static const u32 black = 0x000000FF;
+static const u32 green = 0x00FF00FF;
+static const u32 lgray = 0x1C1C1CFF;
+static const u32 colo1 = 0x996600ff;
+static const u32 colo2 = 0xFFCC00ff;
+static const u32 colo3 = 0xFF6600ff;
+static const u32 colo4 = 0x662200ff;
 
 
-static const uint32_t On  = green;
-static const uint32_t Off = lgray;
+static const u32 On  = green;
+static const u32 Off = lgray;
 
-static const uint32_t draw_table[256][8] = {
+// compile-time initialized table (16 rows × 4 columns)
+static const u32 draw_table[16][4] = {
+    { Off, Off, Off, Off },
+    { Off, Off, Off, On  },
+    { Off, Off, On,  Off },
+    { Off, Off, On,  On  },
+    { Off, On,  Off, Off },
+    { Off, On,  Off, On  },
+    { Off, On,  On,  Off },
+    { Off, On,  On,  On  },
+    { On,  Off, Off, Off },
+    { On,  Off, Off, On  },
+    { On,  Off, On,  Off },
+    { On,  Off, On,  On  },
+    { On,  On,  Off, Off },
+    { On,  On,  Off, On  },
+    { On,  On,  On,  Off },
+    { On,  On,  On,  On  },
+};
+
+
+static const u32 draw_table_large[256][8] = {
     { Off, Off, Off, Off, Off, Off, Off, Off },  // 0x00  ........
     { Off, Off, Off, Off, Off, Off, Off,  On },  // 0x01  .......█
     { Off, Off, Off, Off, Off, Off,  On, Off },  // 0x02  ......█.

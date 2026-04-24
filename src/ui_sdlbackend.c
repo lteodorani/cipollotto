@@ -1,5 +1,7 @@
 #include "cipollotto.h"
 #include "ui.h"
+#include "common.h"
+#include "ui_luts.h"
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
@@ -9,7 +11,6 @@
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_video.h>
 #include <stdarg.h>
-#include <stdint.h>
 #include <SDL3/SDL.h>
 #include <stdio.h>
 #include <SDL3_ttf/SDL_ttf.h>
