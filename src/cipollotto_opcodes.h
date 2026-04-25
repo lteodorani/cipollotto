@@ -257,7 +257,7 @@ static inline void op_drw_schip(chip8* c8, u16 opcode){
         collision = drw_lores(c8, originX, originY, n);
     }
 
-    V[0xF] = collision;    
+    V[0xF] = (u8)collision;    
     c8->drawFlag = true;
 }
 
@@ -273,7 +273,7 @@ inline static void op_drw(chip8* c8, u16 opcode){
     collision = drw_lores(c8, originX, originY, n);
 
 
-    V[0xF] = collision;    
+    V[0xF] = (u8)collision;    
     c8->drawFlag = true;
 }
 
@@ -364,7 +364,7 @@ inline static void op_sne_reg(chip8* c8, u16 opcode){
 inline static void op_ld_byte(chip8* c8, u16 opcode){
     u16 nn  =  opcode & 0x00FF;
     u16 x   = (opcode & 0x0F00) >> 8;
-    V[x] = nn & 0x00FF;
+    V[x] = (u8)nn;
 }
 
 //Set I equal to address of value nnn
@@ -377,14 +377,14 @@ inline static void op_ld_I(chip8* c8, u16 opcode){
 inline static void op_rnd(chip8* c8, u16 opcode){
     u16 nn  =  opcode & 0x00FF;
     u16 x   = (opcode & 0x0F00) >> 8;
-    V[x] = (u16)(LCG_rand()>>16) & nn;
+    V[x] = (u8)(LCG_rand()>>16) & nn;
 }
 
 //Add nn to Vn (carry flag is not changed).
 inline static void op_add_byte(chip8* c8, u16 opcode){
     u16 nn  =  opcode & 0x00FF;
     u16 x   = (opcode & 0x0F00) >> 8;
-    V[x] = (V[x] + nn) & 0x00FF;
+    V[x] = (u8)(V[x] + nn);
 }
 
 //ALU instructions.
@@ -411,36 +411,36 @@ inline static void handle_8xyn(chip8* c8, u16 opcode){
 
         case 0x4: {
             u16 sum16 = V[x] + V[y];
-            V[ x ] = sum16 & 0x00FF;
-            V[0xF] = sum16 >> 8;
+            V[ x ] = (u8)sum16;
+            V[0xF] = (u8)(sum16 >> 8);
             break;
         }
 
         case 0x5:{
             u16 sub16 = V[x] - V[y];
-            V[ x ] = sub16 & 0x00FF;
-            V[0xF] = (~(sub16 >> 8) & 1);
+            V[ x ] = (u8)sub16;
+            V[0xF] = (u8)(~(sub16 >> 8) & 1);
             break;
         }
 
         case 0x6:{
             u16 spill = V[y] &  1;
             V[ x ] = V[y] >> 1;
-            V[0xF] = spill;
+            V[0xF] = (u8)spill;
             break;
         }
 
         case 0x7:{
             u16 sub16 = V[y] - V[x];
-            V[ x ] = sub16 & 0x00FF;
-            V[0xF] = (~(sub16 >> 8) & 1);
+            V[ x ] = (u8)sub16;
+            V[0xF] = (u8)(~(sub16 >> 8) & 1);
             break;
         }
 
         case 0xE:{
-            u16 spill = (V[y] & 0x0080) >> 7;
-            V[ x ] = (V[y] << 1) & 0x00FF;
-            V[0xF] = spill;
+            u16 spill = ((u16)V[y] & 0x0080) >> 7;
+            V[ x ] = (u8)((u16)V[y] << 1);
+            V[0xF] = (u8)spill;
             break;
         }
     }
@@ -469,7 +469,7 @@ inline static void handle_Fxnn(chip8* c8, u16 opcode){
     u16 x   = (opcode & 0x0F00) >> 8;
     switch (nn) {
         case 0x07:
-            V[x] = (u16)DT;
+            V[x] = DT;
             break;
 
 
@@ -478,7 +478,7 @@ inline static void handle_Fxnn(chip8* c8, u16 opcode){
             for(int i=0; i<16; i++){
                 if(KP[i]){
                     key_pressed = true;
-                    V[x] = (u16)i;
+                    V[x] = (u8)i;
                     break;
                 }
             }
@@ -488,13 +488,13 @@ inline static void handle_Fxnn(chip8* c8, u16 opcode){
 
 
         case 0x15:
-            DT = (u8)V[x];
+            DT = V[x];
             break;
         case 0x18:
-            ST = (u8)V[x];
+            ST = V[x];
             break;
         case 0x1E:
-            I += V[x] & 0xFF;
+            I += V[x];
             break;
         case 0x29:
             //I is set to location of sprite corresponding to value of Vx.
@@ -514,7 +514,7 @@ inline static void handle_Fxnn(chip8* c8, u16 opcode){
         case 0x55:
             if(I <= MEMORY_END - x){
                 for(u16 j=0; j<=x; ++j)
-                    MEM[I+j] = (u8)(V[j]);
+                    MEM[I+j] = V[j];
 
                 I += x + 1;
             }
@@ -592,36 +592,36 @@ inline static void handle_8xyn_schip(chip8* c8, u16 opcode){
 
         case 0x4: {
             u16 sum16 = V[x] + V[y];
-            V[ x ] = sum16 & 0x00FF;
-            V[0xF] = sum16 >> 8;
+            V[ x ] = (u8)sum16;
+            V[0xF] = (u8)(sum16 >> 8);
             break;
         }
 
         case 0x5:{
             u16 sub16 = V[x] - V[y];
-            V[ x ] = sub16 & 0x00FF;
-            V[0xF] = (~(sub16 >> 8) & 1);
+            V[ x ] = (u8)(sub16 & 0x00FF);
+            V[0xF] = (u8)(~(sub16 >> 8) & 1);
             break;
         }
 
         case 0x6:{
             u16 spill = V[x] &  1;
             V[ x ] >>= 1;
-            V[0xF] = spill;
+            V[0xF] = (u8)spill;
             break;
         }
 
         case 0x7:{
             u16 sub16 = V[y] - V[x];
-            V[ x ] = sub16 & 0x00FF;
-            V[0xF] = (~(sub16 >> 8) & 1);
+            V[ x ] = (u8)sub16;
+            V[0xF] = (u8)(~(sub16 >> 8) & 1);
             break;
         }
 
         case 0xE:{
-            u16 spill = (V[x] & 0x0080) >> 7;
-            V[ x ] = (V[x] << 1) & 0x00FF;
-            V[0xF] = spill;
+            u16 spill = ((u16)V[x] & 0x0080) >> 7;
+            V[ x ] = (V[x] << 1);
+            V[0xF] = (u8)spill;
             break;
         }
     }
@@ -759,7 +759,7 @@ inline static void handle_Fxnn_schip(chip8* c8, u16 opcode){
     static u16 userFlags[8]; //persistent memory for FX75/85
     switch (nn) {
         case 0x07:
-            V[x] = (u16)DT;
+            V[x] = DT;
             break;
 
 
@@ -768,7 +768,7 @@ inline static void handle_Fxnn_schip(chip8* c8, u16 opcode){
             for(int i=0; i<16; i++){
                 if(KP[i]){
                     key_pressed = true;
-                    V[x] = (u16)i;
+                    V[x] = (u8)i;
                     break;
                 }
             }
@@ -778,13 +778,13 @@ inline static void handle_Fxnn_schip(chip8* c8, u16 opcode){
 
 
         case 0x15:
-            DT = (u8)V[x];
+            DT = V[x];
             break;
         case 0x18:
-            ST = (u8)V[x];
+            ST = V[x];
             break;
         case 0x1E:
-            I += V[x] & 0xFF;
+            I += V[x];
             if(I > 0xFFF)
                 c8->runState = CIPOLLOTTO_STATUS_HALTED;
 
@@ -820,7 +820,7 @@ inline static void handle_Fxnn_schip(chip8* c8, u16 opcode){
         case 0x55:
             if(I <= MEMORY_END - x){
                 for(u16 j=0; j<=x; ++j)
-                    MEM[I+j] = (u8)(V[j]);
+                    MEM[I+j] = (V[j]);
                 
                 //I += x;
             }
@@ -852,7 +852,7 @@ inline static void handle_Fxnn_schip(chip8* c8, u16 opcode){
         case 0x85:{
             u16 ncpy = MIN(x, 7);
             for(int i=0; i<=ncpy; i++)
-                V[i] = userFlags[i];
+                V[i] = (u8)userFlags[i];
 
             break;
         }

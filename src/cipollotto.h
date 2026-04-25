@@ -63,12 +63,9 @@ typedef struct chip8{
         u8  MEM[4096];   //Working RAM
         u8  FB[FB_SIZE]; //Framebuffer
         u16 STACK[16];   //Stack
-
-        // TODO: convert to u8 opcodes.h
-            u16 V[16];
-            u16 I;           //V0...VF, I regs.
-            u8  KP[16];      //Keypad
-
+        u8  V[16];
+        u16 I;           //V0...VF, I regs.
+        u8  KP[16];      //Keypad
         u16 PC;          //Program counter
         u8  DT, ST, SP;  //Timers, stack pointer
     } state;

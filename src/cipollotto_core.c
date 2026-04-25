@@ -181,7 +181,7 @@ void chip8Init(chip8* c8, chip8_variant variant, const char* romFilename){
 }
 
 
-void memdump(chip8* c8, const char *filename){
+void memdump(chip8* c8, const char* filename){
     FILE* of = fopen(filename, "w");
     fwrite(MEM, sizeof(MEM), 1, of);
     fclose(of);
