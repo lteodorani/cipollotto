@@ -10,10 +10,9 @@ static const u32 lgray = 0x1C1C1CFF;
 static const u32 colo1 = 0x996600ff;
 static const u32 colo2 = 0xFFCC00ff;
 static const u32 colo3 = 0xFF6600ff;
-static const u32 colo4 = 0x662200ff;
 
 
-static const u32 On  = green;
+static const u32 On  = colo1;
 static const u32 Off = lgray;
 
 // compile-time initialized table (16 rows × 4 columns)

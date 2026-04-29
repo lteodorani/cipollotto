@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 typedef uint8_t  u8;
 typedef uint16_t u16;
@@ -15,3 +16,7 @@ typedef int64_t i64;
 
 #define MIN(a, b) (((a) <= (b)) ? (a) : (b))
 #define MAX(a, b) (((a) => (b)) ? (a) : (b))
+
+#define UI_DEBUG
+//#define BEEP_SINE
+//#define DRAW_FLAG

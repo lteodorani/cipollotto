@@ -227,7 +227,6 @@ inline static u16 drw_lores(chip8* c8, u16 originX, u16 originY, u16 n){
         );
 
         drawnRows++;
-
     }
 
     //printf("%d\n", collidedRowsN);
@@ -258,7 +257,9 @@ static inline void op_drw_schip(chip8* c8, u16 opcode){
     }
 
     V[0xF] = (u8)collision;    
+    #ifdef DRAW_FLAG
     c8->drawFlag = true;
+    #endif
 }
 
 inline static void op_drw(chip8* c8, u16 opcode){
@@ -274,7 +275,9 @@ inline static void op_drw(chip8* c8, u16 opcode){
 
 
     V[0xF] = (u8)collision;    
+    #ifdef DRAW_FLAG
     c8->drawFlag = true;
+    #endif
 }
 
 inline static void handle_0nnn(chip8* c8, u16 opcode){
@@ -282,7 +285,9 @@ inline static void handle_0nnn(chip8* c8, u16 opcode){
     switch(nnn) {
         case 0x0E0:
             memset(FB, 0x00, sizeof(FB));
+            #ifdef DRAW_FLAG
             c8->drawFlag = true;
+            #endif
             break;
         case 0x0EE: //ret from subroutine
             if(SP>0){
@@ -291,12 +296,13 @@ inline static void handle_0nnn(chip8* c8, u16 opcode){
             }
             else {
                 c8->errState = CIPOLLOTTO_ERR_STACK_OOB;
-                c8->runState = CIPOLLOTTO_STATUS_HALTED;
+                c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             }
             break;
 
         default:
             c8->errState = CIPOLLOTTO_ERR_INVALID_OPCODE;
+            c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             break;
     }
 }
@@ -328,7 +334,7 @@ inline static void op_call(chip8* c8, u16 opcode){
         PC = nnn;
     }else {
         c8->errState = CIPOLLOTTO_ERR_STACK_OOB;
-        c8->runState = CIPOLLOTTO_STATUS_HALTED;
+        c8->runState = CIPOLLOTTO_STATUS_CRASHED;
     }
 }
 
@@ -508,7 +514,7 @@ inline static void handle_Fxnn(chip8* c8, u16 opcode){
             }
             else {
                 c8->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
-                c8->runState = CIPOLLOTTO_STATUS_HALTED;
+                c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             }
             break;
         case 0x55:
@@ -520,7 +526,7 @@ inline static void handle_Fxnn(chip8* c8, u16 opcode){
             }
             else {
                 c8->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
-                c8->runState = CIPOLLOTTO_STATUS_HALTED;
+                c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             }
             break;
         case 0x65:
@@ -532,7 +538,7 @@ inline static void handle_Fxnn(chip8* c8, u16 opcode){
             }
             else {
                 c8->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
-                c8->runState = CIPOLLOTTO_STATUS_HALTED;
+                c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             }
             break;
 
@@ -635,7 +641,9 @@ inline static void scrolln(chip8* c8, u16 n){
     u16 deltaBytes = n * BYTES_PER_ROW;
     memmove(FB + deltaBytes, FB, FB_SIZE-deltaBytes);
     memset(FB, 0x0, deltaBytes);
+    #ifdef DRAW_FLAG
     c8->drawFlag = true;
+    #endif
 }
 
 //scrolls horizontally right 4 pixels
@@ -653,7 +661,9 @@ inline static void scrollr(chip8* c8){
         }
         memcpy(FB+r*BYTES_PER_ROW, rowBytes, BYTES_PER_ROW);
     }
+    #ifdef DRAW_FLAG
     c8->drawFlag = true;
+    #endif
 }
 
 inline static void scrolll(chip8* c8){
@@ -670,7 +680,9 @@ inline static void scrolll(chip8* c8){
         }
         memcpy(FB+r*BYTES_PER_ROW, rowBytes, BYTES_PER_ROW);
     }
+    #ifdef DRAW_FLAG
     c8->drawFlag = true;
+    #endif
 }
 
 inline static void handle_0nnn_schip(chip8* c8, u16 opcode){
@@ -678,7 +690,9 @@ inline static void handle_0nnn_schip(chip8* c8, u16 opcode){
     switch(nnn) {
         case 0x0E0:
             memset(FB, 0x00, sizeof(FB));
+            #ifdef DRAW_FLAG
             c8->drawFlag = true;
+            #endif
             break;
         case 0x0EE: //ret from subroutine
             if(SP>0){
@@ -687,7 +701,7 @@ inline static void handle_0nnn_schip(chip8* c8, u16 opcode){
             }
             else {
                 c8->errState = CIPOLLOTTO_ERR_STACK_OOB;
-                c8->runState = CIPOLLOTTO_STATUS_HALTED;
+                c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             }
             break;
         
@@ -716,7 +730,7 @@ inline static void handle_0nnn_schip(chip8* c8, u16 opcode){
 
         default:
             c8->errState = CIPOLLOTTO_ERR_INVALID_OPCODE;
-            c8->runState = CIPOLLOTTO_STATUS_HALTED;
+            c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             break;
     }
 }
@@ -731,7 +745,7 @@ inline static void handle_00_schip(chip8* c8, u16 opcode){
                 case 0x000:
                     c8->runState = CIPOLLOTTO_STATUS_HALTED;
                     break;
-                default:                    
+                default:
                     scrolln(c8, __n);
                     break;
                 
@@ -785,8 +799,7 @@ inline static void handle_Fxnn_schip(chip8* c8, u16 opcode){
             break;
         case 0x1E:
             I += V[x];
-            if(I > 0xFFF)
-                c8->runState = CIPOLLOTTO_STATUS_HALTED;
+            I &= 0xFFF;
 
             break;
         case 0x29:
@@ -807,7 +820,7 @@ inline static void handle_Fxnn_schip(chip8* c8, u16 opcode){
             }
             else {
                 c8->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
-                c8->runState = CIPOLLOTTO_STATUS_HALTED;
+                c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             }
             break;
 
@@ -826,7 +839,7 @@ inline static void handle_Fxnn_schip(chip8* c8, u16 opcode){
             }
             else {
                 c8->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
-                c8->runState = CIPOLLOTTO_STATUS_HALTED;
+                c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             }
             break;
         case 0x65:
@@ -838,7 +851,7 @@ inline static void handle_Fxnn_schip(chip8* c8, u16 opcode){
             }
             else {
                 c8->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
-                c8->runState = CIPOLLOTTO_STATUS_HALTED;
+                c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             }
             break;
             

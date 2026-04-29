@@ -32,6 +32,7 @@ typedef enum{
    CIPOLLOTTO_STATUS_RUNNING = 0,
    CIPOLLOTTO_STATUS_HALTED,
    CIPOLLOTTO_STATUS_PAUSED,
+   CIPOLLOTTO_STATUS_CRASHED
     
 } chip8_status;
 
@@ -49,29 +50,33 @@ typedef struct chip8{
     struct {
         u32 IPS;
         u32 FPS;
+        u64 cycle;
     } clock;
 
     chip8_variant variant;
     chip8_status  runState;
     chip8_error   errState;
+    #ifdef DRAW_FLAG
     bool          drawFlag;
+    #endif
     bool          extMode;   
 
-
+    u16 currOpcode;
+    u16 prevOpcode;
+    
     struct {
         //state description
-        u8  MEM[4096];   //Working RAM
+        u8  MEM[4096];   //RAM
         u8  FB[FB_SIZE]; //Framebuffer
         u16 STACK[16];   //Stack
-        u8  V[16];
-        u16 I;           //V0...VF, I regs.
+        u8  V[16];       //Registers
+        u16 I;           
         u8  KP[16];      //Keypad
         u16 PC;          //Program counter
-        u8  DT, ST, SP;  //Timers, stack pointer
+        u8  DT, ST, SP;  //Timers, Stack pointer
     } state;
     
 
 } chip8;
 
-void memdump(chip8* chip8_state, const char *filename);
 void chip8Init(chip8* chip8_state, chip8_variant variant, const char* romFilename);

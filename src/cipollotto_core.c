@@ -1,6 +1,3 @@
-//TODO: Use u16 for intermediate results, not the register array itself.
-
-
 #include "cipollotto.h"
 #include "cipollotto_opcodes.h"
 #include "common.h"
@@ -51,47 +48,45 @@ static const u8 large_font_data[FONT_LARGE_SIZE] = {
 #define SP       (c8->state.SP)
 #define KP       (c8->state.KP)
 
-
-
-
 void chip8Step(chip8* c8){
     //fetch opcode taking care of endianess. chip-8 is big endian,
     //but x86 is little endian
-    
-    u16 opcode = (MEM[PC] << 8) | (MEM[PC+1]);
+    c8->prevOpcode = c8->currOpcode;
+    c8->currOpcode = (MEM[PC] << 8) | (MEM[PC+1]);
     PC+=2;
     if(PC < MEMORY_START || PC > MEMORY_END){
         c8->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
-        c8->runState = CIPOLLOTTO_STATUS_HALTED;
+        c8->runState = CIPOLLOTTO_STATUS_CRASHED;
     }
     //dispatch
-    u16 h   = (opcode & 0xF000) >> 12;
+    u16 h = (c8->currOpcode & 0xF000) >> 12;
 
     switch(h)
     {
-        case 0x0: {handle_0nnn(c8, opcode); break;}
-        case 0x1: {op_jp (c8, opcode);      break;}
-        case 0x2: {op_call(c8, opcode);     break;}
-        case 0x3: {op_se_byte (c8, opcode); break;}
-        case 0x4: {op_sne_byte(c8, opcode); break;}
-        case 0x5: {op_se_reg (c8, opcode);  break;}
-        case 0x6: {op_ld_byte(c8, opcode);  break;}
-        case 0x7: {op_add_byte(c8, opcode); break;}
-        case 0x8: {handle_8xyn(c8, opcode); break;}
-        case 0x9: {op_sne_reg(c8, opcode);  break;}
-        case 0xA: {op_ld_I(c8, opcode);     break;}
-        case 0xB: {op_jp_v0(c8, opcode);    break;}
-        case 0xC: {op_rnd(c8, opcode);      break;}
-        case 0xD: {op_drw(c8, opcode);      break;}
-        case 0xE: {handle_Exnn(c8, opcode); break;}        
-        case 0xF: {handle_Fxnn(c8, opcode); break;}
+        case 0x0: {handle_0nnn(c8, c8->currOpcode);   break;}
+        case 0x1: {op_jp      (c8, c8->currOpcode);   break;}
+        case 0x2: {op_call    (c8, c8->currOpcode);   break;}
+        case 0x3: {op_se_byte (c8, c8->currOpcode);   break;}
+        case 0x4: {op_sne_byte(c8, c8->currOpcode);   break;}
+        case 0x5: {op_se_reg  (c8, c8->currOpcode);   break;}
+        case 0x6: {op_ld_byte (c8, c8->currOpcode);   break;}
+        case 0x7: {op_add_byte(c8, c8->currOpcode);   break;}
+        case 0x8: {handle_8xyn(c8, c8->currOpcode);   break;}
+        case 0x9: {op_sne_reg (c8, c8->currOpcode);   break;}
+        case 0xA: {op_ld_I    (c8, c8->currOpcode);   break;}
+        case 0xB: {op_jp_v0   (c8, c8->currOpcode);   break;}
+        case 0xC: {op_rnd     (c8, c8->currOpcode);   break;}
+        case 0xD: {op_drw     (c8, c8->currOpcode);   break;}
+        case 0xE: {handle_Exnn(c8, c8->currOpcode);   break;}        
+        case 0xF: {handle_Fxnn(c8, c8->currOpcode);   break;}
 
         default:
             c8->errState = CIPOLLOTTO_ERR_INVALID_OPCODE;
-            c8->runState = CIPOLLOTTO_STATUS_HALTED;
+            c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             break;
     }
 
+    c8->clock.cycle++;
 
 }
 
@@ -99,45 +94,47 @@ void schipStep(chip8* c8){
     //fetch opcode taking care of endianess. chip-8 is big endian,
     //but x86 is little endian, requiring to read the two bytes of
     //the 16-bit opcodes separatedly
-    u16 opcode = (MEM[PC] << 8) | (MEM[PC+1]);
+    c8->prevOpcode = c8->currOpcode;
+    c8->currOpcode = (MEM[PC] << 8) | (MEM[PC+1]);
     PC+=2;
     if(PC < MEMORY_START || PC > MEMORY_END){
         c8->errState = CIPOLLOTTO_ERR_MEMORY_OOB;
-        c8->runState = CIPOLLOTTO_STATUS_HALTED;
+        c8->runState = CIPOLLOTTO_STATUS_CRASHED;
     }
     //dispatch
-    u16 h   = (opcode & 0xF000) >> 12;
+    u16 h   = (c8->currOpcode & 0xF000) >> 12;
 
     switch(h)
     {
-        case 0x0: {handle_00_schip(c8, opcode);     break;}
-        case 0x1: {op_jp (c8, opcode);              break;}
-        case 0x2: {op_call(c8, opcode);             break;}
-        case 0x3: {op_se_byte (c8, opcode);         break;}
-        case 0x4: {op_sne_byte(c8, opcode);         break;}
-        case 0x5: {op_se_reg (c8, opcode);          break;}
-        case 0x6: {op_ld_byte(c8, opcode);          break;}
-        case 0x7: {op_add_byte(c8, opcode);         break;}
-        case 0x8: {handle_8xyn_schip(c8, opcode);   break;}
-        case 0x9: {op_sne_reg(c8, opcode);          break;}
-        case 0xA: {op_ld_I(c8, opcode);             break;}
-        case 0xB: {op_jp_vx(c8, opcode);            break;}
-        case 0xC: {op_rnd(c8, opcode);              break;}
-        case 0xD: {op_drw_schip(c8, opcode);        break;}
-        case 0xE: {handle_Exnn(c8, opcode);         break;}        
-        case 0xF: {handle_Fxnn_schip(c8, opcode);   break;}
+        case 0x0: {handle_00_schip  (c8, c8->currOpcode);     break;}
+        case 0x1: {op_jp            (c8, c8->currOpcode);     break;}
+        case 0x2: {op_call          (c8, c8->currOpcode);     break;}
+        case 0x3: {op_se_byte       (c8, c8->currOpcode);     break;}
+        case 0x4: {op_sne_byte      (c8, c8->currOpcode);     break;}
+        case 0x5: {op_se_reg        (c8, c8->currOpcode);     break;}
+        case 0x6: {op_ld_byte       (c8, c8->currOpcode);     break;}
+        case 0x7: {op_add_byte      (c8, c8->currOpcode);     break;}
+        case 0x8: {handle_8xyn_schip(c8, c8->currOpcode);     break;}
+        case 0x9: {op_sne_reg       (c8, c8->currOpcode);     break;}
+        case 0xA: {op_ld_I          (c8, c8->currOpcode);     break;}
+        case 0xB: {op_jp_vx         (c8, c8->currOpcode);     break;}
+        case 0xC: {op_rnd           (c8, c8->currOpcode);     break;}
+        case 0xD: {op_drw_schip     (c8, c8->currOpcode);     break;}
+        case 0xE: {handle_Exnn      (c8, c8->currOpcode);     break;}        
+        case 0xF: {handle_Fxnn_schip(c8, c8->currOpcode);     break;}
 
         default:
             c8->errState = CIPOLLOTTO_ERR_INVALID_OPCODE;
-            c8->runState = CIPOLLOTTO_STATUS_HALTED;
+            c8->runState = CIPOLLOTTO_STATUS_CRASHED;
             break;
     }
+
+    c8->clock.cycle++;
 }
 
 //initialization
 void chip8Init(chip8* c8, chip8_variant variant, const char* romFilename){
     
-
     memset(c8, 0, sizeof(chip8));
 
     PC = PROG_START_ADDR;
@@ -178,13 +175,6 @@ void chip8Init(chip8* c8, chip8_variant variant, const char* romFilename){
     fread(MEM+PROG_START_ADDR, 1, fsize, fROM);
     fclose(fROM);
 
-}
-
-
-void memdump(chip8* c8, const char* filename){
-    FILE* of = fopen(filename, "w");
-    fwrite(MEM, sizeof(MEM), 1, of);
-    fclose(of);
 }
 
 
